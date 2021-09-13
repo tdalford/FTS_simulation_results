@@ -36,7 +36,8 @@ def get_aspect(config, aspect, element, number):
         return get_item(config[aspect], element, number)
 
 
-def step_rays(starting_rays, config, ray_func, *ray_func_args, final_dist=50):
+def step_rays(starting_rays, config, ray_func, *ray_func_args, final_dist=50,
+              debug=True):
     # Data structure which contains starting point, vector, length for each ray
     # through the sim
     total_ray_points = []
@@ -67,22 +68,19 @@ def step_rays(starting_rays, config, ray_func, *ray_func_args, final_dist=50):
                     if current_rays[i + 1] is not None:
                         distances.append(
                             current_rays[i + 1][4] - current_rays[i][4])
-                else:
-                    # The ray made it to the last detector; give it some
-                    # smaller distance to visualize.
-                    # detector_location = # PLINTzS(80, ray[2], ray[3])
-                    # distances.append(dist(ray[2], detector_location))
-                    detector_location = PLINTyS(
-                        config['detector']['center'][1], ray[2], ray[3])
-                    distance_from_center = dist(
-                        detector_location, config['detector']['center'])
-                    if (distance_from_center <= config['detector']['range']):
-                        distances.append(dist(ray[2], detector_location))
-                        count += 1
                     else:
-                        distances.append(0)
+                        # The ray made it to the last detector
+                        final_ray = get_final_rays_tilt(
+                            [ray], config['detector']['center'],
+                            config['detector']['range'],
+                            config['detector']['normal_vec'])
+                        if (final_ray) != []:
+                            distances.append(dist(ray[2], final_ray[0][2]))
+                            count += 1
 
-                    # distances.append(final_dist)
+                        else:
+                            distances.append(100)
+                        # distances.append(final_dist)
             else:
                 # The ray did not make it to the end.
                 # Append a final distance for the last ray so we can see where
@@ -92,16 +90,16 @@ def step_rays(starting_rays, config, ray_func, *ray_func_args, final_dist=50):
         total_ray_points.append(points)
         total_ray_vectors.append(vectors)
         total_ray_distances.append(distances)
-        # total_angles.append(angles)
         counts.append(count)
 
-    print('final ray counts = %s' % counts)
-    print('initial number of rays = %s' % len(starting_rays))
-    print('total number of rays making past the first ellipse = %s' % np.sum(
-        np.array(counts) != 1))
-    print('total number of rays making it all the way through = %s' % np.sum(
-        np.array(counts) == max_count))
-    return total_ray_points, total_ray_vectors, total_ray_distances
+        if (debug):
+            print('final ray counts = %s' % counts)
+            print('initial number of rays = %s' % len(starting_rays))
+            print('total number of rays making past the first ellipse = %s'
+                  % np.sum(np.array(counts) != 1))
+            print('total number of rays making it all the way through = %s'
+                  % np.sum(np.array(counts) == max_count))
+        return total_ray_points, total_ray_vectors, total_ray_distances
 
 
 def plot_interferogram(delay, ij, ax, labels=True):
@@ -121,7 +119,7 @@ def plot_fft(initial_freq, freqs, fft, ax, zoom=True, zoom_amt=20,
 
     ax.tick_params(colors='black')
     ax.axvline(x=float(initial_freq), color='green',
-               label=str(initial_freq)+'GHz')
+               label=str(initial_freq) + ' GHz')
     if (zoom):
         ax.set_xlim(initial_freq - zoom_amt, initial_freq + zoom_amt)
     ax.legend()
@@ -182,7 +180,8 @@ def scan_frequency_range(delay, outrays, freqs, ymax):
         gaussian_amplitudes.append(gaussian_amplitude)
         fft_amplitudes.append(max_fft)
 
-    return peak_shifts, gaussian_shifts, peak_widths, gaussian_amplitudes, fft_amplitudes
+    return peak_shifts, gaussian_shifts, peak_widths, gaussian_amplitudes, \
+        fft_amplitudes
 
 
 def get_frequency_shift_and_peak_width(initial_freq, ij, ymax,
@@ -282,10 +281,11 @@ def rays_to_matrix(rays):
     total_rays = []
     for y_rays in rays:
         # only keep polarization, intensity, and phase
-        # could also keep detector position and angle separately if we're curious!
+        # could also keep detector position and angle separately
+        # if we're curious!
         power_vals_mask = [0, 1, 4]
-        power_vals = np.array(np.array(y_rays, dtype='object')[:, power_vals_mask],
-                              dtype='float64')
+        power_vals = np.array(np.array(y_rays, dtype='object')[
+            :, power_vals_mask], dtype='float64')
         # pad rows now
         total_vals = np.zeros((max_rays_num, 3))
         total_vals[:power_vals.shape[0]] = power_vals
@@ -295,9 +295,11 @@ def rays_to_matrix(rays):
 
 
 def plot_shifts_end(shift, freqs, gaussian_shifts, gaussian_amplitudes):
-    fig, ax = plt.subplots(1, 2, figsize=(15, 5))
+    fig, ax = plt.subplots(1, 2, figsize=(12, 5))
     # from gaussian fitted maximum FFT value')
-    ax[0].set_title('frequency shift')
+    title = ('(%.2g, %.2g, %.2g) mm. det shift from focus' % (
+        tuple(np.array(shift) * 25.4)))
+    ax[0].set_title('%s \n, frequency shift' % title)
     ax[0].plot(freqs, np.array(gaussian_shifts), '.', color='green')
     ax[0].set_xlabel('frequency [Ghz]')
     ax[0].set_ylabel('fractional frequency shift [Ghz]')
@@ -305,36 +307,39 @@ def plot_shifts_end(shift, freqs, gaussian_shifts, gaussian_amplitudes):
     ax[0].grid()
 
     # from gaussian fitted maximum FFT value')
-    ax[1].set_title('amplitude shift')
+    ax[1].set_title('%s \n, output amplitude over frequency' % title)
     ax[1].plot(freqs, np.array(gaussian_amplitudes), '.', color='blue')
     ax[1].set_xlabel('frequency [Ghz]')
-    ax[1].set_ylabel('amplitude')
+    ax[1].set_ylabel('FTS normalized amplitude')
     ax[1].grid()
 
-    plt.suptitle('%s in. source shifting' % shift)
-    plt.show()
+    # plt.suptitle('%s mm. source shifting' % (np.array(shift) * 25.4))
+    plt.tight_layout()
+    # plt.show()
 
 
 def plot_shifts(delay, ray_mat, freqs, ymax, shift=None, plot=False):
     peak_shifts, gaussian_shifts, peak_widths, gaussian_amplitudes, \
-        fft_amplitudes = scan_frequency_range(delay, ray_mat, freqs, ymax)
+        fft_maxes = scan_frequency_range(delay, ray_mat, freqs, ymax)
 
     if plot:
         plot_shifts_end(shift, freqs, gaussian_shifts, gaussian_amplitudes)
-    return gaussian_shifts, gaussian_amplitudes
+    return gaussian_shifts, peak_shifts, gaussian_amplitudes, fft_maxes
 
 
 def get_shifts(rays, config, n_mirror_positions, possible_paths, ymax,
                shift=None, debug=False):
     delay, final_rays = run_all_rays_through_sim_optimized(
         rays, config, n_mirror_positions, paths=possible_paths, ymax=ymax,
-        tqdm=debug)
+        progressbar=debug)
     ray_mat = rays_to_matrix(final_rays)
-    freqs = np.arange(15, 301)
-    gaussian_shifts, gaussian_amplitudes = plot_shifts(
+    nyquist_freq = c / ((2 * ymax / n_mirror_positions) * 4 * 2)
+    freqs = np.arange(15, nyquist_freq - 10 + 1)
+    gaussian_shifts, peak_shifts, gaussian_amplitudes, fft_maxes = plot_shifts(
         delay, ray_mat, freqs, ymax, shift=shift)
 
-    return delay, ray_mat, gaussian_shifts, gaussian_amplitudes, freqs
+    return delay, ray_mat, gaussian_shifts, peak_shifts, \
+        gaussian_amplitudes, fft_maxes, freqs
 
 
 def smart_rms(timeseries, n_iters, threshold):
@@ -368,7 +373,7 @@ def transform_rays_perfect(rays, config, plot_mirror_position=0, debug=False):
     # Now try a bunch of different paths!
     if (debug):
         mirror_position = [0, plot_mirror_position, 0]
-        for path in possible_paths[5:7]:
+        for path in [possible_paths[1], possible_paths[5]]:
             total_ray_points, total_vectors, total_distances = step_rays(
                 rays, config, run_ray_through_sim, config, mirror_position,
                 path, final_dist=238)
@@ -377,19 +382,21 @@ def transform_rays_perfect(rays, config, plot_mirror_position=0, debug=False):
 
 def add_shift_attrs(total_attrs, shift, n_linear, n_mirror_positions,
                     possible_paths, y_max, config, semaphore, debug):
-    start_rays = csims.get_final_rays(shift, theta_bound=.5, n_linear=n_linear,
+    start_rays = csims.get_final_rays(shift, theta_bound=.3, n_linear=n_linear,
                                       y_ap=-.426)
     transformed_start_rays = transform_rays_perfect(start_rays, config)
 
-    delay, ray_mat, gaussian_shifts, gaussian_amplitudes, freqs = get_shifts(
-        transformed_start_rays, config, n_mirror_positions, possible_paths,
-        y_max, shift=shift, debug=debug)
+    delay, ray_mat, gaussian_shifts, peak_shifts, gaussian_amplitudes, \
+        fft_maxes, freqs = get_shifts(
+            transformed_start_rays, config, n_mirror_positions, possible_paths,
+            y_max, shift=shift, debug=debug)
 
     mean_freq, std_freq = smart_rms(np.array(gaussian_shifts), 4, 4)
     # just take the normal RMS here
     mean_amp, std_amp = smart_rms(np.array(gaussian_amplitudes), 1, 10)
-    total_attrs.put([shift, delay, gaussian_shifts, gaussian_amplitudes,
-                     mean_freq, std_freq, mean_amp, std_amp, freqs, ray_mat])
+    total_attrs.put([shift, delay, gaussian_shifts, peak_shifts,
+                     gaussian_amplitudes, fft_maxes, mean_freq, std_freq,
+                     mean_amp, std_amp, freqs, ray_mat])
     semaphore.release()
     return
 
@@ -431,32 +438,57 @@ def get_freq_shifts_threaded(
 
 
 def main():
-    FTS_stage_step_size = 0.375  # FTS step size in mm
-    FTS_stage_throw = 35.*2.     # total throw extent in mm
+    # FTS_stage_step_size = 0.375  # FTS step size in mm
+    # FTS_stage_step_size = 0.15  # FTS step size in mm
+    # FTS_stage_throw = 35.     # total throw extent in mm
 
-    # n_mirror_positions = 2 * (FTS_stage_throw / FTS_stage_step_size)
+    # n_mirror_positions = (2 * FTS_stage_throw / FTS_stage_step_size)
     # n_mirror_positions = 2 * (FTS_stage_throw / .15)
-    n_mirror_positions = (20 * 2 / .1)
+
+    FTS_stage_throw = 20.     # total throw extent in mm
+    FTS_stage_step_size = 0.1  # FTS step size in mm
+    # n_mirror_positions = (20 * 2 / .1)
+    n_mirror_positions = (2 * FTS_stage_throw / FTS_stage_step_size)
 
     with open("lab_fts_dims_mcmahon.yml", "r") as stream:
         config = yaml.safe_load(stream)
+        # set the detector (really 'source') range to the desired amount
+        # config['detector']['range'] = 30.
 
     print('center = %s, range = %s' % (
         config['detector']['center'], config['detector']['range']))
     possible_paths = get_possible_paths()
 
-    x_vals = np.linspace(-.3, .3, 15)
-    y_vals = np.linspace(-.3, .3, 15)
+    x_vals = np.linspace(-.4, .4, 15)
+    y_vals = np.linspace(-.4, .4, 15)
     z_vals = np.linspace(0, 0, 1)
+
+    # x_vals = np.linspace(0, 0, 1)
+    # y_vals = np.linspace(0, 0, 1)
+    # z_vals = np.linspace(2, 2, 1)
+
+    # x_vals = np.linspace(0, 0, 1)
+    # y_vals = np.linspace(0, 0, 1)
+    # cm to inches
+    # z_vals = np.array([-4, -2.5, -2, -1, 1, 2, 2.5, 4]) / (2.54)  # cm to in
 
     # x_vals = np.linspace(-.2, -.2, 1)
     # y_vals = np.linspace(.2, .2, 1)
     # z_vals = np.linspace(-2, -2, 1)
     total_attrs_xy = get_freq_shifts_threaded(
-        x_vals, y_vals, z_vals, 25, n_mirror_positions, possible_paths, 20,
-        config, debug=False)
+        x_vals, y_vals, z_vals, 30, n_mirror_positions, possible_paths,
+        FTS_stage_throw, config, debug=False)
 
-    pickle.dump(total_attrs_xy, open("total_attrs_xy_15_15_625.p", "wb"))
+    # pickle.dump(total_attrs_y, open(
+    #     "total_attrs_z_shift_1_5_10_25_35_range_42.p", "wb"))
+
+    # pickle.dump(total_attrs_y, open("z_2_one_point_50_35.p", "wb"))
+
+    pickle.dump(total_attrs_xy, open(
+        "total_attrs_xz_5_5_30_20_range_42.p", "wb")
+    )
+
+    # a run with only y shifts here!
 
     # save this for loading elsewhere
     print('finished!')
