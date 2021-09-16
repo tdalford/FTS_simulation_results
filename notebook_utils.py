@@ -1,16 +1,18 @@
 from fts_coupling_optics_geo import *
 import fts_coupling_optics_geo as fts
 import coupling_optics_sims as csims
-from RayTraceFunctionsv2 import *
+#from RayTraceFunctionsv2 import *
 from scipy.optimize import curve_fit
 import yaml
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 from multiprocessing import Process, Manager, Semaphore
-import RayTraceFunctionsv2
+import RayTraceFunctionsv2 as rt
 
 c = 300.
+LAST_LENS_EDGE = [-231.24377979, -266.21940725, 0.]
+COUPLING_OPTICS_ORIGIN = [-233.28894593160666, -276.84436350628596, 0.]
 
 
 def get_aspect(config, aspect, element, number):
@@ -37,7 +39,7 @@ def get_aspect(config, aspect, element, number):
 
 
 def step_rays(starting_rays, config, ray_func, *ray_func_args, final_dist=50,
-              debug=True):
+              debug=1):
     # Data structure which contains starting point, vector, length for each ray
     # through the sim
     total_ray_points = []
@@ -68,19 +70,18 @@ def step_rays(starting_rays, config, ray_func, *ray_func_args, final_dist=50,
                     if current_rays[i + 1] is not None:
                         distances.append(
                             current_rays[i + 1][4] - current_rays[i][4])
-                    else:
-                        # The ray made it to the last detector
-                        final_ray = get_final_rays_tilt(
-                            [ray], config['detector']['center'],
-                            config['detector']['range'],
-                            config['detector']['normal_vec'])
-                        if (final_ray) != []:
-                            distances.append(dist(ray[2], final_ray[0][2]))
-                            count += 1
+                else:
+                    # check and see if the final ray hit the detector!
+                    final_ray = rt.get_final_rays_tilt(
+                        [ray], config['detector']['center'],
+                        config['detector']['range'],
+                        config['detector']['normal_vec'])
+                    if (final_ray) != []:
+                        distances.append(rt.dist(ray[2], final_ray[0][2]))
+                        count += 1
 
-                        else:
-                            distances.append(100)
-                        # distances.append(final_dist)
+                    else:
+                        distances.append(final_dist)
             else:
                 # The ray did not make it to the end.
                 # Append a final distance for the last ray so we can see where
@@ -92,14 +93,16 @@ def step_rays(starting_rays, config, ray_func, *ray_func_args, final_dist=50,
         total_ray_distances.append(distances)
         counts.append(count)
 
-        if (debug):
-            print('final ray counts = %s' % counts)
-            print('initial number of rays = %s' % len(starting_rays))
-            print('total number of rays making past the first ellipse = %s'
-                  % np.sum(np.array(counts) != 1))
-            print('total number of rays making it all the way through = %s'
-                  % np.sum(np.array(counts) == max_count))
-        return total_ray_points, total_ray_vectors, total_ray_distances
+    assert debug in [0, 1, 2]
+    if (debug == 2):
+        print('final ray counts = %s' % counts)
+    if (debug == 1):
+        print('initial number of rays = %s' % len(starting_rays))
+        print('total number of rays making past the first ellipse = %s'
+              % np.sum(np.array(counts) != 1))
+        print('total number of rays making it all the way through = %s'
+              % np.sum(np.array(counts) == max_count))
+    return total_ray_points, total_ray_vectors, total_ray_distances
 
 
 def plot_interferogram(delay, ij, ax, labels=True):
@@ -154,7 +157,7 @@ def generate_spectrum(initial_freq, ij, ymax=18, fac=.95):
 def plot_freq_interferogram(test_freq, rays, delay, c=300., ymax=32, fac=.95):
     ij = []
     for y_rays in rays:
-        ij.append(sum_power_vectorized(y_rays, c / test_freq))
+        ij.append(rt.sum_power_vectorized(y_rays, c / test_freq))
 
     plot_spectra(test_freq, delay, ij, ymax=ymax, fac=fac)
 
@@ -167,7 +170,7 @@ def scan_frequency_range(delay, outrays, freqs, ymax):
     peak_widths = []
 
     for freq in freqs:
-        ij = get_interferogram(outrays, (c / freq))
+        ij = rt.get_interferogram(outrays, (c / freq))
         peak_shift, gaussian_shift, peak_width = \
             get_frequency_shift_and_peak_width(freq, ij, ymax, plot_vals=False,
                                                print_vals=False)
@@ -238,7 +241,6 @@ def gaussian_fit(x, y):
                                max(y), mean, sigma], maxfev=10000)
         return popt
     except RuntimeError:
-        #print('fit not converging...')
         return None
 
 
@@ -256,9 +258,6 @@ def get_amplitude(initial_freq, ij, ymax, print_vals=True, plot_vals=False):
         #gaussian_max_val = np.max(gaussian(x, *popt))
         gaussian_max_val = popt[0]
 
-    # get total area under the spectrum
-    #total_area = np.trapz(fft[3:], x=freqs[3:])
-    # total_area = np.trapz(ij, x=delay)
     if (print_vals):
         print('maximum value of amplitude = %s' % max_val)
         print('maximum value of gaussian = %s' % gaussian_max_val)
@@ -329,7 +328,7 @@ def plot_shifts(delay, ray_mat, freqs, ymax, shift=None, plot=False):
 
 def get_shifts(rays, config, n_mirror_positions, possible_paths, ymax,
                shift=None, debug=False):
-    delay, final_rays = run_all_rays_through_sim_optimized(
+    delay, final_rays = rt.run_all_rays_through_sim_optimized(
         rays, config, n_mirror_positions, paths=possible_paths, ymax=ymax,
         progressbar=debug)
     ray_mat = rays_to_matrix(final_rays)
@@ -355,36 +354,27 @@ def smart_rms(timeseries, n_iters, threshold):
     return(mean_tmp, rms_tmp)
 
 
-def transform_rays_perfect(rays, config, plot_mirror_position=0, debug=False):
-    #source_point_origin = [-223.58, -233.782 + 15.86, 0]
-    #source_point_origin = [-233.28894593, -276.84436351, 0.]
-    source_point_origin = [-231.24377979, -266.21940725, 0.]
-    angle = .19016
+def transform_rays_to_fts_frame(rays):
+    source_point_origin = LAST_LENS_EDGE
+    angle = .190161
+    new_rays = []
     for ray in rays:
+        new_ray = [ray[0], ray[1], None, None, ray[4]]
         # .19635 #.253406]) #should actually be 10.89 deg #11.25 degrees now
-        new_vec = rotate(ray[3], [0, 0, angle])
-        ray[2] = np.add(rotate(ray[2], [0, 0, angle]), source_point_origin)
-        #ray[2] = np.add(ray[2], source_point_origin)
-        ray[3] = new_vec
-        #ray[4] = 0
+        new_vec = rt.rotate(ray[3], [0, 0, angle])
+        new_ray[2] = np.add(rt.rotate(ray[2], [0, 0, angle]),
+                            source_point_origin)
+        new_ray[3] = new_vec
+        new_rays.append(new_ray)
 
-    possible_paths = get_possible_paths()
-
-    # Now try a bunch of different paths!
-    if (debug):
-        mirror_position = [0, plot_mirror_position, 0]
-        for path in [possible_paths[1], possible_paths[5]]:
-            total_ray_points, total_vectors, total_distances = step_rays(
-                rays, config, run_ray_through_sim, config, mirror_position,
-                path, final_dist=238)
-    return rays
+    return new_rays
 
 
 def add_shift_attrs(total_attrs, shift, n_linear, n_mirror_positions,
                     possible_paths, y_max, config, semaphore, debug):
     start_rays = csims.get_final_rays(shift, theta_bound=.3, n_linear=n_linear,
                                       y_ap=-.426)
-    transformed_start_rays = transform_rays_perfect(start_rays, config)
+    transformed_start_rays = transform_rays_to_fts_frame(start_rays, config)
 
     delay, ray_mat, gaussian_shifts, peak_shifts, gaussian_amplitudes, \
         fft_maxes, freqs = get_shifts(
@@ -457,10 +447,10 @@ def main():
 
     print('center = %s, range = %s' % (
         config['detector']['center'], config['detector']['range']))
-    possible_paths = get_possible_paths()
+    possible_paths = rt.get_possible_paths()
 
-    x_vals = np.linspace(-.4, .4, 15)
-    y_vals = np.linspace(-.4, .4, 15)
+    x_vals = np.linspace(-.65, .65, 15)
+    y_vals = np.linspace(-.65, .65, 15)
     z_vals = np.linspace(0, 0, 1)
 
     # x_vals = np.linspace(0, 0, 1)
@@ -485,7 +475,7 @@ def main():
     # pickle.dump(total_attrs_y, open("z_2_one_point_50_35.p", "wb"))
 
     pickle.dump(total_attrs_xy, open(
-        "total_attrs_xz_5_5_30_20_range_42.p", "wb")
+        "total_attrs_xz_15_15_20_57.p", "wb")
     )
 
     # a run with only y shifts here!

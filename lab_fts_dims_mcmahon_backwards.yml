@@ -89,8 +89,9 @@ apertures:
 #   tilt: [0, 0, .190161] #.190161 #.16056
 
 detector:
-  center: [409.65, 360, -70]   #[225, 233.782, 0]
-  range: 57.15 #42.278
-  #normal_vec: [-0.19682082, -0.96993331,  0.14314658]
-  # rotate this by -30 deg about x
-  normal_vec: [0.168953, 0.849385, -0.5]
+  # maybe try stoppting 10mm or so before the first lens
+  # center: [-231.244, -266.219, 0.]
+  center: [-229.509, -257.205, 0.]
+  range: 1000
+  # normal vec should just be the beam angle
+  normal_vec: [.189017, .981974, 0]

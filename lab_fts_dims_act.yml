@@ -1,16 +1,8 @@
-# FIRST TRY JUST MAKING THIS SIMULATION WIH THEIR DIMENSIONS!!!
-# - then could maybe add this dihedral mirror
-# then could switch to my dimesions I guess
-
-# Polarizer values value is np.pi / x, not sure how better to do this besides
-# decimals..
-
 # If I really wanted to I could change this so that each element has its own
 # attributes
 # e.g. ellipse has origin, coefficients, angle, center, range
 # polarizer has a orientation angle, origin, coefficients
-# then there are final mirrors, detector, aperture..
-# I should probably do this honestly
+# then there are final mirrors, detector
 
 polarizer_values:
   1: .785398 # np.pi / 4
@@ -65,32 +57,13 @@ centers:
 
 ranges: [42.2727, 200, 40.7508]
 
-other_mirrors:
-  1: 
-    origin: [234.45, 282.88, 0]
-    # tilt: [0, 0, -0.5890]
-    normal_vec: [-0.55557, 0.83147, 0]
-  2:
-    origin: [382.1517, 252.5345, 0]
-    # tilt: [0.1, 0, -0.5890]
-    #normal_vec: [-0.55557, 0.827316, -0.0830085]
-    # rotate this by -30 deg about the x
-    normal_vec: [-0.574052, 0.738556, -0.353553]
-
-apertures:
-  1: 
-    origin: [301.04, 269.2, 0] #between (306, 389) and (301, 266)
-    normal_vec: [0.980785, -0.19509, 0]
-    range: 35
-
-# detector:
-#   center: [234.4668, 282.8767, 0]   #[225, 233.782, 0]
-#   range: 42.278
-#   tilt: [0, 0, .190161] #.190161 #.16056
+# these are defined by initially going straight up in the z direction!
 
 detector:
-  center: [409.65, 360, -70]   #[225, 233.782, 0]
+  #center: [225, 233.782, 0]
+  center: [243.902, 331.979, 0]
   range: 57.15 #42.278
-  #normal_vec: [-0.19682082, -0.96993331,  0.14314658]
-  # rotate this by -30 deg about x
-  normal_vec: [0.168953, 0.849385, -0.5]
+  # rotate this by -11.25 deg about z
+  # change this to be the perfect beam angle/normal vector: -10.8954
+  normal_vec: [0.189017, 0.981974, 0]
+  # normal_vec: [0, 1, 0]

@@ -6,89 +6,20 @@ input rays (random initial phase or all zero) and pickling (the ability to
 return every single ray generated in the simulation). If you are interested in
 more functions showing the build up of this simulation, contact me at
 liusarkarm@uchicago.edu Mira Liu'''
+import yaml
+from tqdm import tqdm
+import time
+import math
+import random
+from random import uniform
+import numpy
+import numpy as np
+from numba import jit, njit
 
 # from numba import jot  # for speedups
-from numba import jit, njit
-import numpy as np
-import numpy
-from random import uniform
-import random
-import math
-import time
-from tqdm import tqdm
-import yaml
 
-'''Background values. Also included in a separate .py file.'''
-# the four polarizers in order.
-# p1 = np.pi/4
-# p2 = np.pi/2
-# p3 = np.pi
-# p4 = np.pi/4
-
-# originG = [0., 0., 0.]  # the global origin
-# thetG = [0., 0., 0.]  # rotation with respect to itself aka 0,0,0
-# origin1 = [-32.075, -128., 0.]  # x,y (ellipse1)
-# origin2 = [32.075, -128., 0.]  # x,y (ellipse2) #ELLIPSE DIMENSIONS:
-# origin3 = [-32.075, 128., 0.]  # x,y (ellipse3)
-# origin4 = [32.075, 128, 0.]  # x,y  (ellipse4)
-# origin5 = [96.225, -120.50, 0.]  # (ellipse5)
-# origin6 = [96.225, 120.50, 0.]  # (ellipse6)
-# origin7 = [128.3, 7.5, 39.850000]  # (ellipse7)
-# origin8 = [-96.225, -120.50, 0.]  # (ellipse8)
-# origin9 = [-96.225, 120.50, 0.]  # (ellipse9)
-# origin10 = [-128.3, 7.5, -39.850000]  # last ellipsoid
-
-# # coefficients are like [a,b,c] of an ellipsoid x^2/a^2 + y^2/b^2 + z^2/c^2
-# coeffellipse7 = [164.54585247700001,
-#                  99.690818975602866, 130.9086635]  # for ellipse 7
-# coeffellipse56 = [256.65344272795591, 248.39387505453516,
-#                   64.58693753]  # for ellipses 5&6&8&9
-# coeffellipse = [263.915180503, 256.0, 64.15]  # for the four center ellipses
-
-# coeffmirr = [31.75, 25.4, 19.05]  # for the mirror
-# coeffpolar = [32.075, 32.075, 0.]  # for polarizers (2d circle)
-
-# thet = [0., 0., 0.]
-# thet5 = [0., 0., -.116385]  # angle of rotation
-# thet6 = [0., 0., .116385]  # angle of rotation
-# thet7 = [0., 0.309319724356, 1.31064594453]  # angle of rotation
-# thet10 = [0., 0.309319724356, -1.31064594453]  # angle of rotation
-
-# originpolar1 = [-128.3, 0.0, 0.0]  # global origin of polarizer 1
-# originpolar2 = [-64.15, 0.0, 0.0]  # global origin of polarizer 2
-# originpolar3 = [64.15, 0.0, 0.0]  # global origin of polarizer 3
-# originpolar4 = [128.3, 0.0, 0.0]  # global origin of polarizer 4
-
-# origindet = [160.375, -113]  # global origin of detector
-# radet = 7.9375  # radius of detector
-
-# below are the geometric centers and ranges of aspects of the FTS.
-# center1, range1 = [0.0, 254.99883040161689, 0.0], [
-#     31.427020202020202, 200, 31.400097443962792]
-# center2, range2 = [-3.5527136788005009e-15, 254.99883040161689,
-#                    0.0], [31.427020202020202, 200, 31.400097443962792]
-# center3, range3 = [0.0, -254.99883040161689,
-#                    0.0], [31.427020202020202, 200, 31.400097443962792]
-# center4, range4 = [-3.5527136788005009e-15, -254.99883040161689,
-#                    0.0], [31.427020202020202, 200, 31.400097443962792]
-# center5, range5 = [28.333333333333336, 244.95832095066169, 0.0], [
-#     30.909090909090921, 200, 31.315767057290568]
-# center6, range6 = [28.333333333333336, -244.95832095066169,
-#                    0.0], [30.909090909090921, 200, 31.315767057290568]
-# center8, range8 = [-28.333333333333329, 244.95832095066169,
-#                    0.0], [30.909090909090914, 200, 31.315767057290568]
-# center9, range9 = [-28.333333333333329, -244.95832095066169,
-#                    0.0], [30.909090909090914, 200, 31.315767057290568]
-# center10, range10 = [-96.458686868686868, 3.279771448324329, 73.24759051407338], [
-#     41.577020202020229, 33.648217777841843, 20.001702052348694]
-# center7, range7 = [96.45868686868684, 3.1907688264097978, -73.870253223692842], [
-#     41.577020202020208, 200, 19.642335814884394]
-# Ecenter7 = [192.45-32.075, 0., 0.]
-# Ecenter10 = [-128.3-32.075, 0., 0.]
 
 # Create new functions to set each of the origins and angles:
-
-
 def get_aspect(config, aspect, element, number):
     '''Obtain the config for a given aspect, element, and number.
 
@@ -120,38 +51,38 @@ filename = "lab_fts_dims_mcmahon.yml"
 # filename = "lab_fts_dims_dicts.yml"
 # filename = "lab_fts_dims_dicts_old.yml"
 with open(filename, "r") as stream:
-    config = yaml.safe_load(stream)
+    config_to_use = yaml.safe_load(stream)
 
 originG = [0., 0., 0.]  # the global origin
 thetG = [0., 0., 0.]  # rotation with respect to itself aka 0,0,0
 
-p1, p2, p3, p4 = [get_aspect(config, 'polarizer_values', None,
+p1, p2, p3, p4 = [get_aspect(config_to_use, 'polarizer_values', None,
                              i + 1) for i in range(4)]
 origin1, origin2, origin3, origin4, origin5, origin6, origin7, origin8, \
-    origin9, origin10 = [get_aspect(config, 'origins', 'ellipses',
+    origin9, origin10 = [get_aspect(config_to_use, 'origins', 'ellipses',
                                     i + 1) for i in range(10)]
 
-coeffellipse7 = get_aspect(config, 'coefficients', 'ellipses', 7)
-coeffellipse56 = get_aspect(config, 'coefficients', 'ellipses', 5)
-coeffellipse = get_aspect(config, 'coefficients', 'ellipses', 1)
+coeffellipse7 = get_aspect(config_to_use, 'coefficients', 'ellipses', 7)
+coeffellipse56 = get_aspect(config_to_use, 'coefficients', 'ellipses', 5)
+coeffellipse = get_aspect(config_to_use, 'coefficients', 'ellipses', 1)
 
 thet, thet5, thet6, thet7, thet10 = [get_aspect(
-    config, 'angles', 'ellipses', i) for i in [1, 5, 6, 7, 10]]
+    config_to_use, 'angles', 'ellipses', i) for i in [1, 5, 6, 7, 10]]
 
 # Locations and coefficients of the polarizers:
-coeffmirr = get_aspect(config, 'coefficients', 'mirror', None)
-coeffpolar = get_aspect(config, 'coefficients', 'polarizers', None)
+coeffmirr = get_aspect(config_to_use, 'coefficients', 'mirror', None)
+coeffpolar = get_aspect(config_to_use, 'coefficients', 'polarizers', None)
 
 originpolar1, originpolar2, originpolar3, originpolar4 = [get_aspect(
-    config, 'origins', 'polarizers', i + 1) for i in range(4)]
+    config_to_use, 'origins', 'polarizers', i + 1) for i in range(4)]
 
 center1, center2, center3, center4, center5, center6, center7, center8, \
     center9, center10 = [get_aspect(
-        config, 'centers', None, i + 1) for i in range(10)]
+        config_to_use, 'centers', None, i + 1) for i in range(10)]
 
 range1, range2, range3, range4, range5, range6, range7, range8, \
     range9, range10 = [get_aspect(
-        config, 'ranges', None, i + 1) for i in range(10)]
+        config_to_use, 'ranges', None, i + 1) for i in range(10)]
 
 ''' Below are functions used in the simulation'''
 
@@ -1214,7 +1145,7 @@ def IntPolR2(Ray, coeffpolar, originpolar, PolarizerAngle):  # reflected
 
 
 # @jit(cache=True)
-def IntM2(Ray, coeffmirr, originmirr, thickness):
+def IntM2(Ray, coeffmirr, originmirr):
     if Ray is None:
         return
     p = Ray[2]
@@ -1222,13 +1153,8 @@ def IntM2(Ray, coeffmirr, originmirr, thickness):
     Ray_M = []
     Ray_M.append(Ray[0] + np.pi)  # flips TO BE CONSISTENT
     Ray_M.append(Ray[1])
-
-    incoming_y = p[1]
-    modified_origin = np.copy(originmirr)
-    modified_origin[1] += np.sign(incoming_y) * thickness
-
-    intpoint = PLINTyS(modified_origin[1], p, v)
-    if SRM(intpoint, coeffmirr, modified_origin) == True:
+    intpoint = PLINTyS(originmirr[1], p, v)
+    if SRM(intpoint, coeffmirr, originmirr) == True:
         Ray_M.append(intpoint)
         VectLNorm = N(v)
         PNorm = [0, -1, 0]  # from definition of mirror (check sign what)
@@ -1917,6 +1843,33 @@ def get_final_rays_new(rays, detector_center, detector_range):
             new_ray = [ray[0], ray[1], ray[2], ray[3], ray[4]]
             new_ray[4] = ray[4] + dist(ray[2], detector_location)
             new_ray[2] = detector_location
+            final_rays.append(new_ray)
+
+    return final_rays
+
+
+def get_final_rays_tilt(rays, detector_center, detector_range, normal_vec):
+    # return any rays that are within detector_range distance from
+    # detector_center
+    # first get the intersect point by taking the plane (0, 1, 0) and rotating
+    # by the proper tilt angle.
+    final_rays = []
+    # detector_normal_vec = transformLG(1e-10, 1, 1e-10, [0, 0, 0],
+    #                                   detector_tilt)
+    detector_normal_vec = normal_vec
+    for ray in rays:
+        detector_intersection, vec = reflect_line_about_plane(
+            np.array(ray[2]), np.array(ray[3]), np.array(detector_center),
+            np.array(detector_normal_vec))
+        distance_from_center = dist(detector_intersection, detector_center)
+        # we realistically want this to be a perfect reflection backwards..
+        # print('incoming vector = %s' % list(ray[3]))
+        # print('"reflected" vector = %s' % list(vec))
+        # print('distance from center = %s' % distance_from_center)
+        if (distance_from_center <= detector_range):
+            new_ray = [ray[0], ray[1], ray[2], ray[3], ray[4]]
+            new_ray[4] = ray[4] + dist(ray[2], detector_intersection)
+            new_ray[2] = list(detector_intersection)
             final_rays.append(new_ray)
 
     return final_rays
@@ -3674,7 +3627,7 @@ def reflect_dihedral_upper(incoming_point, incoming_vector,
 
 
 def reflect_dihedral_planes(incoming_point, incoming_vector,
-                            dihedral_center_point, dihedral_thickness=0):
+                            dihedral_center_point):
     # Try reflecting off the lower mirror, then try reflecting off the upper...
     # Can really just find the planar intersection and then go that way
 
@@ -3682,16 +3635,9 @@ def reflect_dihedral_planes(incoming_point, incoming_vector,
     center_intersect = PLINTyS(
         dihedral_center_point[1], incoming_point, incoming_vector)
 
-    # first we modify the center point based on the dihedral thickness
-    # the center always moves towards the outside
-    # so, get the incoming point y coordinate. if negative, we subtract from
-    # the center. If positive, we add to the center.
-    incoming_y = incoming_point[1]
-    modified_center = np.copy(dihedral_center_point)
-    modified_center[1] += np.sign(incoming_y) * dihedral_thickness
-
     # If its z-value is positive, we reflect off the top of the mirror
-    # this is only if we start on the positive side!
+
+    # this is only if we star on the positive side!
     # since if we're on the negative side the 'upper' and 'lower' mirrors
     # are switched
     if (center_intersect[2] > 0 and incoming_point[1] > 0) or (
@@ -3701,23 +3647,22 @@ def reflect_dihedral_planes(incoming_point, incoming_vector,
         funcs = [reflect_dihedral_lower, reflect_dihedral_upper]
 
     intersect1, reflected_vector1 = funcs[0](incoming_point, incoming_vector,
-                                             modified_center)
+                                             dihedral_center_point)
     intersect2, reflected_vector2 = funcs[1](intersect1, reflected_vector1,
-                                             modified_center)
+                                             dihedral_center_point)
     return intersect1, reflected_vector1, intersect2, reflected_vector2
 
 
 def raytrace_dihedral_mirror(incoming_ray, mirror_coefficients,
-                             mirror_position, mirror_thickness):
+                             mirror_position):
     if incoming_ray is None:
         return None, None
     incoming_point = np.array(incoming_ray[2])
     incoming_vector = np.array(incoming_ray[3])
     # print(incoming_point, incoming_vector)
     intersect1, reflected_vector1, intersect2, reflected_vector2 =  \
-        reflect_dihedral_planes(
-            incoming_point, incoming_vector, np.array(mirror_position),
-            dihedral_thickness=mirror_thickness)
+        reflect_dihedral_planes(incoming_point, incoming_vector,
+                                np.array(mirror_position))
     # print(intersect1, reflected_vector1, intersect2, reflected_vector2)
     first_reflected_ray = [incoming_ray[0], incoming_ray[1], list(intersect1),
                            list(reflected_vector1),
@@ -3731,29 +3676,47 @@ def raytrace_dihedral_mirror(incoming_ray, mirror_coefficients,
     return first_reflected_ray, internal_reflected_ray
 
 
-def raytrace_final_mirror(incoming_ray, mirror_position, mirror_bounds):
+def raytrace_other_mirror(incoming_ray, mirror_origin, mirror_normal_vec,
+                          mirror_bounds):
     if incoming_ray is None:
         return None
     incoming_point = np.array(incoming_ray[2])
     incoming_vector = np.array(incoming_ray[3])
     # print(incoming_point, incoming_vector)
-    intersect, reflected_vector = reflect_final_mirror(
-        incoming_point, incoming_vector, np.array(mirror_position))
-    # Make sure the x polarization flips while the y polarization does not!
-    # So theta -> pi - theta
+
+    # starting_normal = [0, 1, 0]
+    # plane_normal = np.array([.82849, -.56001, 0])
+    # plane_normal = rotate(starting_normal, mirror_tilt)
+    plane_normal = np.array(mirror_normal_vec)
+    intersect, reflected_vector = reflect_line_about_plane(
+        incoming_point, incoming_vector, mirror_origin, plane_normal)
+
     reflected_ray = [incoming_ray[0], incoming_ray[1], list(intersect),
                      list(reflected_vector),
                      incoming_ray[4] + dist(incoming_point, intersect)]
     return reflected_ray
 
 
-def reflect_final_mirror(incoming_point, incoming_vector, mirror_position):
-    # want the vector to point in the XY plane, y = -x
-    #plane_normal = np.array([1 / np.sqrt(2), -1 / np.sqrt(2), 0])
-    plane_normal = np.array([.82849, -.56001, 0])
-    intersection_point, reflected_vector = reflect_line_about_plane(
-        incoming_point, incoming_vector, mirror_position, plane_normal)
-    return intersection_point, reflected_vector
+def raytrace_aperture(incoming_ray, aperture_origin, aperture_normal_vec,
+                      aperture_range):
+    # assume a circular aperture here.
+    if incoming_ray is None:
+        return None
+    incoming_point = np.array(incoming_ray[2])
+    incoming_vector = np.array(incoming_ray[3])
+    # print(incoming_point, incoming_vector)
+
+    aperture_normal = np.array(aperture_normal_vec)
+    intersect, _ = reflect_line_about_plane(
+        incoming_point, incoming_vector, aperture_origin, aperture_normal)
+
+    if dist(intersect, aperture_origin) > aperture_range:
+        return None
+    # Otherwise keep the same vector as before and transmit through!
+    through_ray = [incoming_ray[0], incoming_ray[1], list(intersect),
+                   list(incoming_vector),
+                   incoming_ray[4] + dist(incoming_point, intersect)]
+    return through_ray
 
 
 def TRTRioMPickle_mod(Ri, p1, p2, p3, p4, originM, mirror_coeffs,
@@ -3785,7 +3748,7 @@ def TRTRioMPickle_mod(Ri, p1, p2, p3, p4, originM, mirror_coeffs,
 
 
 def run_ray_through_sim(initial_ray, config, mirror_position, path_order,
-                        polarizers=[1, 2, 3, 4], return_all_rays=False):
+                        return_all_rays=False):
     '''New streamlined routine'''
     # The order is always polarizer, mirror, polarizer, mirror, dihedral,
     # mirror, polarizer, mirror, polarizer, mirror
@@ -3798,52 +3761,56 @@ def run_ray_through_sim(initial_ray, config, mirror_position, path_order,
 
     # If we want to go a step further we know that transmitting first always
     # leads to mirror 8, and so this is redundant information. Can create a
-    # hashmap always leading to the next aspect, but then we always have to keep
-    # track of which side we're on... kind of a bit of a pain. maybe later.
-    instruction_map = {'T': IntPolT2, 'R': IntPolR2,
-                       'M': raytrace_dihedral_mirror, 'M2': IntM2,
-                       'MF': raytrace_final_mirror}
-    _ = [instruction_map.update({i + 1: ReflEll}) for i in range(10)]
+    # hashmap always leading to the next aspect, but then we always have to
+    # keep track of which side we're on... kind of a bit of a pain. maybe
+    # later.
+    function_map = {'T': IntPolT2, 'R': IntPolR2,
+                    'DM': raytrace_dihedral_mirror, 'SM': IntM2,
+                    'OM': raytrace_other_mirror, 'A': raytrace_aperture,
+                    'E': ReflEll}
 
     ray = initial_ray
     all_rays = [ray]
-    polarizer_index = 0
     for instruction in path_order:
-        function = instruction_map[instruction]
+        function_key = instruction[:-1]
+        item_number = int(instruction[-1])
+        function = function_map[function_key]
         # See which of the polarizer, mirror, or central mirror we're going
         # through and update function arguments accordingly.
-        if instruction in ['T', 'R']:  # Reflect or transmit off a polarizer
+        if function_key in ['T', 'R']:  # Reflect or transmit off a polarizer
             # The equivalent of (coeffpolar, originpolar4, p4)
-            polarizer = polarizers[polarizer_index]
             args = (
                 get_aspect(config, 'coefficients', 'polarizers', None),
-                get_aspect(config, 'origins', 'polarizers', polarizer),
-                get_aspect(config, 'polarizer_values', None, polarizer))
-            polarizer_index += 1
+                get_aspect(config, 'origins', 'polarizers', item_number),
+                get_aspect(config, 'polarizer_values', None, item_number))
 
         # Reflect off the central dihedral mirror
-        elif instruction in ['M', 'M2']:
-            if ('mirror_thickness') not in config.keys():
-                thickness = 0
-            else:
-                thickness = config['mirror_thickness']
-            args = (config['coefficients']['mirror'], mirror_position,
-                    thickness)
+        elif function_key in ['DM', 'SM']:
+            args = (config['coefficients']['mirror'], mirror_position)
 
-        elif instruction == 'MF':
-            args = (config['origins']['final_mirror'], None)
+        elif function_key == 'OM':
+            # reflect off one of the other focusing mirrors
+            args = (config['other_mirrors'][item_number]['origin'],
+                    config['other_mirrors'][item_number]['normal_vec'],
+                    None)
+
+        elif function_key == 'A':
+            # reflect off one of the final focusing mirrors
+            args = (config['apertures'][item_number]['origin'],
+                    config['apertures'][item_number]['normal_vec'],
+                    config['apertures'][item_number]['range'])
         else:  # Reflect off one of the ellipsoidal mirrors
-            assert type(instruction) is int
+            assert function_key == 'E'
             # The equivalent of (thet7, origin7, coeffellipse7, center7, range7)
             args = (
-                get_aspect(config, 'angles', 'ellipses', instruction),
-                get_aspect(config, 'origins', 'ellipses', instruction),
-                get_aspect(config, 'coefficients', 'ellipses', instruction),
-                get_aspect(config, 'centers', None, instruction),
-                get_aspect(config, 'ranges', None, instruction))
+                get_aspect(config, 'angles', 'ellipses', item_number),
+                get_aspect(config, 'origins', 'ellipses', item_number),
+                get_aspect(config, 'coefficients', 'ellipses', item_number),
+                get_aspect(config, 'centers', None, item_number),
+                get_aspect(config, 'ranges', None, item_number))
 
         # raytrace_dihedral_mirror returns two rays instead of one!!
-        if instruction == 'M':
+        if function_key == 'DM':
             ray_middle, ray = function(ray, *args)
             all_rays.append(ray_middle)
         else:
@@ -3857,8 +3824,9 @@ def run_ray_through_sim(initial_ray, config, mirror_position, path_order,
         return all_rays[-1]
 
 
-def get_mirrors(instruction_set):
+def get_mirrors(instruction_set, polarizer_order=[1, 2, 3, 4]):
     # Have numbers for side1, side2
+    polarizer_index = 0
     side1 = [9, 3, 4, 6, 7]
     side2 = [8, 1, 2, 5, None]
     sides = [side1, side2]
@@ -3872,22 +3840,27 @@ def get_mirrors(instruction_set):
         if instruction == 'T':
             side = 1 - side
         value = sides[side][pointer]
-        values.append(instruction)
-        values.append(value)
+        if instruction in ['T', 'R']:
+            values.append(instruction + str(polarizer_order[polarizer_index]))
+            polarizer_index += 1
+        else:
+            values.append(instruction + '0')
+        # now add the mirror afterwards
+        values.append('E' + str(value))
         pointer += 1
     return values
 
 
 def get_possible_paths():
     instructions = [
-        ['T', 'T', 'M', 'T', 'R'],
-        ['R', 'R', 'M', 'R', 'T'],
-        ['T', 'T', 'M', 'R', 'T'],
-        ['R', 'T', 'M', 'T', 'T'],
-        ['R', 'T', 'M', 'R', 'R'],
-        ['T', 'R', 'M', 'R', 'R'],
-        ['R', 'R', 'M', 'T', 'R'],
-        ['T', 'R', 'M', 'T', 'T']
+        ['T', 'T', 'DM', 'T', 'R'],
+        ['R', 'R', 'DM', 'R', 'T'],
+        ['T', 'T', 'DM', 'R', 'T'],
+        ['R', 'T', 'DM', 'T', 'T'],
+        ['R', 'T', 'DM', 'R', 'R'],
+        ['T', 'R', 'DM', 'R', 'R'],
+        ['R', 'R', 'DM', 'T', 'R'],
+        ['T', 'R', 'DM', 'T', 'T']
     ]
 
     # Don't include the last mirror here.
@@ -3908,11 +3881,10 @@ def run_rays_through_sim(initial_rays, config, mirror_position, paths=None):
             if output_ray is not None:
                 output_rays.append(output_ray)
 
-    # final_rays = checkoutraysM(output_rays, config['detector']['center'],
-    #                            config['detector']['range'])
     # Only return the rays that are within range of the final detector.
-    final_rays = get_final_rays_new(output_rays, config['detector']['center'],
-                                    config['detector']['range'])
+    final_rays = get_final_rays_tilt(
+        output_rays, config['detector']['center'],
+        config['detector']['range'], config['detector']['normal_vec'])
 
     return final_rays
 
@@ -3978,16 +3950,14 @@ def run_rays_through_sim_second_half(intermediate_rays, config,
         if output_ray is not None:
             output_rays.append(output_ray)
 
-    # final_rays = checkoutraysM(output_rays, config['detector']['center'],
-    #                            config['detector']['range'])
-    final_rays = get_final_rays_new(output_rays, config['detector']['center'],
-                                    config['detector']['range'])
+    final_rays = get_final_rays_tilt(
+        output_rays, config['detector']['center'], config['detector']['range'],
+        config['detector']['tilt'])
     return final_rays
 
 
 def run_all_rays_through_sim_optimized(
-        initial_rays, config, num_mirror_positions, ymax=18, paths=None,
-        progressbar=True):
+        initial_rays, config, num_mirror_positions, ymax=18, paths=None):
     if paths is None:
         paths = get_possible_paths()  # A little hard-coded here...
 
@@ -3998,8 +3968,7 @@ def run_all_rays_through_sim_optimized(
                                                         paths)
 
     # Then for each y perform the rest of the raytracing
-    for y in tqdm(np.linspace(-1 * ymax, ymax, int(num_mirror_positions)),
-                  disable=(not progressbar)):
+    for y in tqdm(np.linspace(-1 * ymax, ymax, int(num_mirror_positions))):
         # Run through all the possible paths
         mirror_position = list(
             np.array(config['origins']['mirror']) + [0, y, 0])
@@ -4079,7 +4048,7 @@ def test_dims():
     # global origin of polarizer 1
     assert test_eq(originpolar1, [-128.3, 0.0, 0.0])
     # global origin of polarizer 2
-    assert test_eq(originpolar2, [-64.15, 0.0, 0.0])
+    assert test_eq(originpolar2, [-64.15, 0.0, 00])
     # global origin of polarizer 3
     assert test_eq(originpolar3, [64.15, 0.0, 0.0])
     # global origin of polarizer 4
