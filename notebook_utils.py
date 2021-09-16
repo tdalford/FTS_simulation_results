@@ -293,8 +293,9 @@ def rays_to_matrix(rays):
     return np.array(total_rays)
 
 
-def plot_shifts_end(shift, freqs, gaussian_shifts, gaussian_amplitudes):
-    fig, ax = plt.subplots(1, 2, figsize=(12, 5))
+def plot_shifts_end(shift, freqs, gaussian_shifts, gaussian_amplitudes,
+                    figsize=(12, 5)):
+    fig, ax = plt.subplots(1, 2, figsize=figsize)
     # from gaussian fitted maximum FFT value')
     title = ('(%.2g, %.2g, %.2g) mm. det shift from focus' % (
         tuple(np.array(shift) * 25.4)))
@@ -372,9 +373,9 @@ def transform_rays_to_fts_frame(rays):
 
 def add_shift_attrs(total_attrs, shift, n_linear, n_mirror_positions,
                     possible_paths, y_max, config, semaphore, debug):
-    start_rays = csims.get_final_rays(shift, theta_bound=.3, n_linear=n_linear,
-                                      y_ap=-.426)
-    transformed_start_rays = transform_rays_to_fts_frame(start_rays, config)
+    start_rays = csims.get_final_rays_reversed(
+        shift, theta_bound=.25, n_linear=n_linear, y_ap=-.426)
+    transformed_start_rays = transform_rays_to_fts_frame(start_rays)
 
     delay, ray_mat, gaussian_shifts, peak_shifts, gaussian_amplitudes, \
         fft_maxes, freqs = get_shifts(
@@ -440,7 +441,7 @@ def main():
     # n_mirror_positions = (20 * 2 / .1)
     n_mirror_positions = (2 * FTS_stage_throw / FTS_stage_step_size)
 
-    with open("lab_fts_dims_mcmahon.yml", "r") as stream:
+    with open("lab_fts_dims_act.yml", "r") as stream:
         config = yaml.safe_load(stream)
         # set the detector (really 'source') range to the desired amount
         # config['detector']['range'] = 30.
@@ -449,13 +450,13 @@ def main():
         config['detector']['center'], config['detector']['range']))
     possible_paths = rt.get_possible_paths()
 
-    x_vals = np.linspace(-.65, .65, 15)
-    y_vals = np.linspace(-.65, .65, 15)
-    z_vals = np.linspace(0, 0, 1)
+    # x_vals = np.linspace(-.65, .65, 1)
+    # y_vals = np.linspace(-.65, .65, 1)
+    # z_vals = np.linspace(0, 0, 1)
 
-    # x_vals = np.linspace(0, 0, 1)
-    # y_vals = np.linspace(0, 0, 1)
-    # z_vals = np.linspace(2, 2, 1)
+    x_vals = np.linspace(0, 0, 1)
+    y_vals = np.linspace(0, 0, 1)
+    z_vals = np.linspace(0, 0, 1)
 
     # x_vals = np.linspace(0, 0, 1)
     # y_vals = np.linspace(0, 0, 1)
@@ -466,8 +467,8 @@ def main():
     # y_vals = np.linspace(.2, .2, 1)
     # z_vals = np.linspace(-2, -2, 1)
     total_attrs_xy = get_freq_shifts_threaded(
-        x_vals, y_vals, z_vals, 30, n_mirror_positions, possible_paths,
-        FTS_stage_throw, config, debug=False)
+        x_vals, y_vals, z_vals, 10, n_mirror_positions, possible_paths,
+        FTS_stage_throw, config, debug=True)
 
     # pickle.dump(total_attrs_y, open(
     #     "total_attrs_z_shift_1_5_10_25_35_range_42.p", "wb"))
@@ -475,7 +476,7 @@ def main():
     # pickle.dump(total_attrs_y, open("z_2_one_point_50_35.p", "wb"))
 
     pickle.dump(total_attrs_xy, open(
-        "total_attrs_xz_15_15_20_57.p", "wb")
+        "data/total_attrs_xz_15_15_20_57.p", "wb")
     )
 
     # a run with only y shifts here!

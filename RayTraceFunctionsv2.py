@@ -3905,7 +3905,7 @@ def run_all_rays_through_sim(initial_rays, config, num_mirror_positions,
             initial_rays, config, mirror_position, paths=paths)
 
         # should get rid of this magic number in delay calculation..
-        delay.append(y * 0.95630475596 * 4)
+        delay.append(y * 4)
         all_final_rays.append(final_rays)
 
     return delay, all_final_rays
@@ -3924,7 +3924,7 @@ def separate_paths(paths, middle='M'):
 
 def run_rays_through_sim_first_half(initial_rays, config, paths):
     intermediate_rays = []
-    for m in ['M', 'M2']:
+    for m in ['DM0', 'SM0']:
         if m in paths[0]:
             middle = m
 
@@ -3945,19 +3945,19 @@ def run_rays_through_sim_second_half(intermediate_rays, config,
     for ray_and_path in intermediate_rays:
         ray = ray_and_path["ray"]
         path = ray_and_path["path"]
-        output_ray = run_ray_through_sim(ray, config, mirror_position, path,
-                                         polarizers=[3, 4])
+        output_ray = run_ray_through_sim(ray, config, mirror_position, path)
         if output_ray is not None:
             output_rays.append(output_ray)
 
     final_rays = get_final_rays_tilt(
         output_rays, config['detector']['center'], config['detector']['range'],
-        config['detector']['tilt'])
+        config['detector']['normal_vec'])
     return final_rays
 
 
 def run_all_rays_through_sim_optimized(
-        initial_rays, config, num_mirror_positions, ymax=18, paths=None):
+        initial_rays, config, num_mirror_positions, ymax=18, paths=None,
+        progressbar=True):
     if paths is None:
         paths = get_possible_paths()  # A little hard-coded here...
 
@@ -3968,7 +3968,8 @@ def run_all_rays_through_sim_optimized(
                                                         paths)
 
     # Then for each y perform the rest of the raytracing
-    for y in tqdm(np.linspace(-1 * ymax, ymax, int(num_mirror_positions))):
+    for y in tqdm(np.linspace(-1 * ymax, ymax, int(num_mirror_positions)),
+                  disable=(not progressbar)):
         # Run through all the possible paths
         mirror_position = list(
             np.array(config['origins']['mirror']) + [0, y, 0])
@@ -3977,7 +3978,7 @@ def run_all_rays_through_sim_optimized(
                                                       config, mirror_position)
 
         # should get rid of this magic number in delay calculation..
-        delay.append(y * 0.95630475596 * 4)
+        delay.append(y * 4)
         all_final_rays.append(final_rays)
 
     return delay, all_final_rays

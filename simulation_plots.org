@@ -25,7 +25,7 @@ import time
 
 import matplotlib as mpl
 mpl.rcParams.update(mpl.rcParamsDefault)
-#mpl.rcParams['figure.dpi'] = 200
+mpl.rcParams['figure.dpi'] = 20
 #mpl.rcParams['figure.facecolor'] = '1'
 
 import coupling_optics_sims as csims
@@ -41,6 +41,12 @@ COUPLING_OPTICS_ORIGIN = [-233.28894593160666, -276.84436350628596, 0.]
 #+RESULTS:
 : The autoreload extension is already loaded. To reload it, use:
 :   %reload_ext autoreload
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+import matplotlib as mpl
+#+END_SRC
+
+#+RESULTS:
 
 
 #+BEGIN_SRC jupyter-python :session py :kernel python3
@@ -5227,4 +5233,93 @@ plt.show()
 #+RESULTS:
 [[file:./.ob-jupyter/ecb8bac2e66f468806e24781a37fb348f5107117.png]]
 
+
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+for z in np.linspace(.6, .7, 10):
+    rays_test = csims.get_final_rays_reversed([z, 0, 0], 20, theta_bound=.25)
+    transformed_test = transform_rays_to_fts_frame(rays_test)
+
+    points, vectors, total_distances = step_rays(
+        transformed_test, config, run_ray_through_sim, config, [0, 0, 0], 
+        possible_paths[6], final_dist=0)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+initial number of rays = 352
+total number of rays making past the first ellipse = 350
+total number of rays making it all the way through = 313
+initial number of rays = 352
+total number of rays making past the first ellipse = 350
+total number of rays making it all the way through = 311
+initial number of rays = 352
+total number of rays making past the first ellipse = 350
+total number of rays making it all the way through = 307
+initial number of rays = 352
+total number of rays making past the first ellipse = 350
+total number of rays making it all the way through = 298
+initial number of rays = 352
+total number of rays making past the first ellipse = 350
+total number of rays making it all the way through = 266
+initial number of rays = 352
+total number of rays making past the first ellipse = 350
+total number of rays making it all the way through = 213
+initial number of rays = 352
+total number of rays making past the first ellipse = 350
+total number of rays making it all the way through = 160
+initial number of rays = 350
+total number of rays making past the first ellipse = 350
+total number of rays making it all the way through = 100
+initial number of rays = 352
+total number of rays making past the first ellipse = 352
+total number of rays making it all the way through = 11
+initial number of rays = 352
+total number of rays making past the first ellipse = 352
+total number of rays making it all the way through = 1
+#+end_example
+
+* Loading in some full reverse runs just like before!
+
+#+BEGIN_SRC jupyter-python :session py2 :kernel python3
+import notebook_utils
+import pickle
+import numpy as np
+
+def load_data(fname):
+    total_attrs = pickle.load(open(fname, 'rb'))
+    data = np.array(total_attrs, dtype='object')
+    shifts = np.array(list(map(np.array, data[:, 0])))
+    return data, shifts
+
+def get_shift_index(data, shift):
+    return np.where(np.array([(np.round(data[i][0], 2) == np.round(shift, 2)).all() for i in range(
+        len(data))]) == True)[0][0]
+
+
+def plot_data(data, shift):
+    n = get_shift_index(data, shift)
+    rays = data[n][-1]
+    delay = data[n][1]
+    shift = data[n][0]
+
+    gaussian_shifts = data[n][2]
+    gaussian_amplitudes = data[n][4]
+    freqs = data[n][-2]
+    #_ = notebook_utils.plot_shifts(delay, rays, np.arange(15, 301), 20, shift=[0, 0, -2], plot=True)
+    notebook_utils.plot_shifts_end(shift, freqs, gaussian_shifts, gaussian_amplitudes / np.max(gaussian_amplitudes))
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py2 :kernel python3
+data, shifts = load_data('data/total_attrs_xz_15_15_20_57.p')
+
+for i in range(len(shifts)):
+    plot_data(data, np.sort(shifts, axis=0)[i])
+    plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/c0c9ba51ff493a772b44bcfc4668e43a63d9c399.png]]
 
