@@ -1,12 +1,9 @@
-
 #+BEGIN_SRC jupyter-python :session py :kernel python3
 import numpy as np
 import matplotlib.pyplot as plt
 import itertools
-import RayTraceFunctionsv2
+import RayTraceFunctionsv2 as rt
 
-import importlib
-importlib.reload(RayTraceFunctionsv2)
 #assert RayTraceFunctionsv2.test_dims()
 from RayTraceFunctionsv2 import * 
 
@@ -17,6 +14,7 @@ import plotly.graph_objects as go
 import plotly.io as pio; pio.renderers.default='browser'
 import pickle
 import yaml
+import seaborn as sns
 
 import time
 
@@ -25,7 +23,7 @@ import time
 
 import matplotlib as mpl
 mpl.rcParams.update(mpl.rcParamsDefault)
-mpl.rcParams['figure.dpi'] = 20
+mpl.rcParams['figure.dpi'] = 70
 #mpl.rcParams['figure.facecolor'] = '1'
 
 import coupling_optics_sims as csims
@@ -39,14 +37,10 @@ COUPLING_OPTICS_ORIGIN = [-233.28894593160666, -276.84436350628596, 0.]
 #+END_SRC
 
 #+RESULTS:
-: The autoreload extension is already loaded. To reload it, use:
-:   %reload_ext autoreload
-
-#+BEGIN_SRC jupyter-python :session py :kernel python3
-import matplotlib as mpl
-#+END_SRC
-
-#+RESULTS:
+: /Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+: 
+: invalid value encountered in sqrt
+: 
 
 
 #+BEGIN_SRC jupyter-python :session py :kernel python3
@@ -78,7 +72,7 @@ def get_aspect(config, aspect, element, number):
 #with open("lab_fts_dims_dicts_old.yml", "r") as stream:
 #    config_old = yaml.safe_load(stream)
     
-with open("lab_fts_dims_mcmahon.yml", "r") as stream:
+with open("lab_fts_dims_act.yml", "r") as stream:
     config = yaml.safe_load(stream)
     
 #with open("lab_fts_dims_mcmahon_real.yml", "r") as stream:
@@ -1018,14 +1012,21 @@ fig.show()
 #+END_SRC
 
 #+RESULTS:
-: final ray counts = [12]
-: initial number of rays = 1
-: total number of rays making past the first ellipse = 1
-: total number of rays making it all the way through = 1
-: final ray counts = [12]
-: initial number of rays = 1
-: total number of rays making past the first ellipse = 1
-: total number of rays making it all the way through = 1
+#+begin_example
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+initial number of rays = 1
+total number of rays making past the first ellipse = 1
+total number of rays making it all the way through = 1
+initial number of rays = 1
+total number of rays making past the first ellipse = 1
+total number of rays making it all the way through = 1
+#+end_example
 
 #+BEGIN_SRC jupyter-python :session py :kernel python3
 final_point = points[0][0][-1] + dists[0][0][-1] * csims.normalize(vecs[0][0][-1])
@@ -1034,25 +1035,7 @@ np.around(final_point, decimals=10)
 #+END_SRC
 
 #+RESULTS:
-: array([225.43080754, 233.69907525,  -0.        ])
-
-#+BEGIN_SRC jupyter-python :session py :kernel python3
-starting_rays
-#+END_SRC
-
-#+RESULTS:
-: [[0.123,
-:   1.0,
-:   array([ 2.25430808e+02,  2.33699075e+02, -5.60952232e-14]),
-:   array([-1.56062792e-01, -9.87747136e-01, -1.48645310e-18]),
-:   0]]
-
-#+BEGIN_SRC jupyter-python :session py :kernel python3
-np.around(csims.normalize(final_vec), decimals=6)
-#+END_SRC
-
-#+RESULTS:
-: array([-0.156063, -0.987747, -0.      ])
+: array([233.83113845, 333.91750757,   0.        ])
 
 
 #+BEGIN_SRC jupyter-python :session py :kernel python3
@@ -1094,6 +1077,16 @@ out = csims.run_rays_forwards_input_rays(transformed_rays, z_ap=-20.9, plot=True
                                          fig=fig, color='red')
 fig.show()
 #+END_SRC
+
+#+RESULTS:
+: /Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+: 
+: invalid value encountered in sqrt
+: 
+: /Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+: 
+: invalid value encountered in sqrt
+: 
 
 Ok, first test to see whether raytracing through the FTS itself is the same
 forwards and backwards. Then we test to see if raytracing through the coupling
@@ -3665,7 +3658,7 @@ shift_snr_data = []
 for x_shift in np.linspace(-4, 4, 20):
     print(x_shift)
     for y_shift in np.linspace(-4, 4, 20):
-        for z_shift in np.linspace(-10, 10, 11):
+        for z_shift in np.append(np.linspace(-10, 8, 4), 0):
             snr = calculate_position_snr([x_shift, y_shift, z_shift])
             shift_snr_data.append([x_shift, y_shift, z_shift, snr])
     
@@ -3673,82 +3666,83 @@ for x_shift in np.linspace(-4, 4, 20):
 #+END_SRC
 
 #+RESULTS:
-:RESULTS:
-#+begin_src jupyter-python :session py :kernel python3
-import matplotlib
-shift_snr_data = np.array(shift_snr_data)
-for z in np.linspace(-10, 10, 11):
-    shift_z_data = shift_snr_data[np.where(shift_snr_data[:, 2] == z)]
-    plt.scatter(shift_z_data[:, 0], shift_z_data[:, 1], c=shift_z_data[:, 3], 
-                norm=matplotlib.colors.LogNorm())
-    plt.title('z shift = %s' %z)
-    plt.colorbar(label='# of rays making it through the FTS')
-    plt.show()
-#+end_src
-: -4.0
-# [goto error]
 #+begin_example
+-4.0
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
 
-KeyboardInterruptTraceback (most recent call last)
-<ipython-input-369-e705e8679ed3> in <module>
-     57     for y_shift in np.linspace(-4, 4, 20):
-     58         for z_shift in np.linspace(-10, 10, 11):
----> 59             snr = calculate_position_snr([x_shift, y_shift, z_shift])
-     60             shift_snr_data.append([x_shift, y_shift, z_shift, snr])
-     61 
+invalid value encountered in sqrt
 
-<ipython-input-369-e705e8679ed3> in calculate_position_snr(shift_position)
-     40     # fig = go.Figure()
-     41 
----> 42     out = csims.run_rays_through_coupling_optics_reversed(new_start, fts_geo, 'black', fig, n_linear=30,
-     43                                                           theta_bound=.3, plot=False, y_ap=-.426, alpha=.15)
-     44     # fig.show()
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
 
-~/FTS_simulation_results/coupling_optics_sims.py in run_rays_through_coupling_optics_reversed(P_rx, tele_geo, col, fig, starting_rays, n_linear, alpha, theta_bound, plot, y_ap)
-    562 
-    563         try:
---> 564             t_21 = optimize.brentq(root_21, .01, 30)
-    565         except ValueError:
-    566             # print(ii)
+invalid value encountered in sqrt
 
-~/opt/anaconda3/lib/python3.8/site-packages/scipy/optimize/zeros.py in brentq(f, a, b, args, xtol, rtol, maxiter, full_output, disp)
-    774     if rtol < _rtol:
-    775         raise ValueError("rtol too small (%g < %g)" % (rtol, _rtol))
---> 776     r = _zeros._brentq(f, a, b, xtol, rtol, maxiter, args, full_output, disp)
-    777     return results_c(full_output, r)
-    778 
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:288: RuntimeWarning:
 
-~/FTS_simulation_results/coupling_optics_sims.py in root_21(t)
-    552             z = P_22[2] + gamma * t
-    553 
---> 554             x21, y21, z21 = ref_tele_to_21(
-    555                 x, y, z, 1
-    556             )  # take ray end coordinates and convert to M1 coordinates
+invalid value encountered in sqrt
 
-~/FTS_simulation_results/fts_coupling_optics_geo.py in ref_tele_to_21(x, y, z, shift)
-    140     x_temp = x
-    141     y_temp = y * np.cos(np.pi/2) - z * np.sin(np.pi/2)
---> 142     z_temp = y * np.sin(np.pi/2) + z * np.cos(np.pi/2)
-    143     return x_temp, y_temp, z_temp
-    144 
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:289: RuntimeWarning:
 
-KeyboardInterrupt: 
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:290: RuntimeWarning:
+
+invalid value encountered in sqrt
+/Users/tommyalford/FTS_simulation_results/coupling_optics_sims.py:31: RuntimeWarning:
+
+invalid value encountered in sqrt
+-3.5789473684210527
+-3.1578947368421053
+-2.736842105263158
+-2.3157894736842106
+-1.8947368421052633
+-1.473684210526316
+-1.0526315789473686
+-0.6315789473684212
+-0.2105263157894739
+0.21052631578947345
+0.6315789473684212
+1.0526315789473681
+1.473684210526315
+1.8947368421052628
+2.3157894736842106
+2.7368421052631575
+3.1578947368421044
+3.578947368421052
+4.0
 #+end_example
+
+: -4.0
 :END:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.sum(shift_snr_data[:, 3])
+#+END_SRC
+
+#+RESULTS:
+: 24358.0
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+z_vals = np.append(np.linspace(-10, 8, 4), 0)
+shift_snr_data = np.array(shift_snr_data)
+for z in z_vals:
+    plt.figure(figsize=(10, 10))
+    shift_z_data = shift_snr_data[np.where(shift_snr_data[:, 2] == z)]
+    plt.scatter(shift_z_data[:, 0], shift_z_data[:, 1], c=shift_z_data[:, 3],
+                norm=mpl.colors.LogNorm())
+    plt.title('z shift = %s' %z)
+    #if z != 10:
+    plt.colorbar(label='# of rays making it through the FTS')
+    plt.axis('equal')
+    plt.show()
+#+END_SRC
+
 #+RESULTS:
 :RESULTS:
-
-[[file:./.ob-jupyter/8a698384fd6e66d650e178cc9e3707b1fdcf35ac.png]]
-[[file:./.ob-jupyter/7cb1ebeaf883d8152546495438fa28807d9be55a.png]]
-[[file:./.ob-jupyter/024b1edcb288a6eb3abf00206d3a361564a7b295.png]]
-[[file:./.ob-jupyter/e7e6dc6ad01e824230c1dad99909a79c231072ba.png]]
-[[file:./.ob-jupyter/3737b10df4fa1a863bdf69858d7d69b6b656347c.png]]
-[[file:./.ob-jupyter/9a7bd99b6c7df2622b674005ad352cf505fb2c95.png]]
-[[file:./.ob-jupyter/690c7294131b273499c537f18b768cc12d05be3e.png]]
-[[file:./.ob-jupyter/fa3ce8376f38f7024d8e710866c1040d17ad22fa.png]]
-[[file:./.ob-jupyter/eb7b4ddf72f6e201f4dd0cd0f11c8c60e37fa27d.png]]
-[[file:./.ob-jupyter/c3e288b595bcbca707d552c52054e4ccf307e762.png]]
-
+[[file:./.ob-jupyter/c6150984d9e634ff5acbed22574acd4386c28eae.png]]
+[[file:./.ob-jupyter/a174886519af3e51b023cbd57484bfb49a61f92c.png]]
+[[file:./.ob-jupyter/b7747eb3e620246ba64e47f7ae2ea5458fa29c5a.png]]
+[[file:./.ob-jupyter/ce7dedc20643cdf0392b6b6400c503657618697f.png]]
+[[file:./.ob-jupyter/fea100b64e0e385d753f3f23ec4b68d6b5180fe8.png]]
 :END:
 
 Try running rays in the forwards direction and stopping them at z = -30.9 and
@@ -3819,7 +3813,6 @@ array([3350.88621513, 3351.05446006, 3350.97362151, 3351.26634068,
        3350.89741497, 3350.88918037, 3351.01984984, 3350.94714306,
        3351.09384886, 3351.19703479])
 #+end_example
-
 
 #+BEGIN_SRC jupyter-python :session py :kernel python3
 starting_rays_reversed = []
@@ -4395,6 +4388,22 @@ def remove_outliers(out, threshold=5, debug=False):
             continue
         new_out.append(out[:, i])
     return np.array(new_out).T
+
+# just subtract our z coordinate until we hit -20.9
+def get_distances_at_z(out, z_coordinate):
+    iters = (out[2] - z_coordinate) / out[5]
+    return out[8] - iters / csims.mm_to_in
+
+def get_rays_at_z(out, z_coordinate):
+    iters = (out[2] - z_coordinate) / out[5]
+    points = out[[0, 1, 2]]
+    vectors = out[[3, 4, 5]]
+    new_points = out[[0, 1, 2]] - out[[3, 4, 5]] * iters
+   
+    new_out = out.copy()
+    new_out[[0, 1, 2]] = new_points
+    new_out[8] = get_distances_at_z(out, z_coordinate)
+    return new_out
 #+END_SRC
 
 #+RESULTS:
@@ -4415,20 +4424,6 @@ plt.show()
 
 #+RESULTS:
 [[file:./.ob-jupyter/f575696fb36c9e9111bd98c8bf27b408fadb535a.png]]
-
-#+BEGIN_SRC jupyter-python :session py :kernel python3
-# just subtract our z coordinate until we hit -20.9
-def get_rays_at_z(out, z_coordinate):
-   iters = (out[2] - z_coordinate) / out[10]
-   points = out[[0, 1, 2]]
-   vectors = out[[8, 9, 10]]
-   new_points = out[[0, 1, 2]] - out[[8, 9, 10]] * iters
-   
-   new_out = out.copy()
-   new_out[[0, 1, 2]] = new_points
-   new_out[3] = get_distances_at_z(out, z_coordinate)
-   return new_out
-#+END_SRC
 
 #+RESULTS:
 
@@ -4534,12 +4529,13 @@ invalid value encountered in sqrt
 #+end_example
 
 #+BEGIN_SRC jupyter-python :session py :kernel python3
-for z in np.linspace(-10.9, -30.9, 11):
-    points = remove_outliers(get_rays_at_z(out, z), threshold=5)
-    #points = out[[0, 1, 2]]
-    plt.figure(figsize=(3, 3))
-    sns.kdeplot(x=points[0], y=points[1] - csims.FOCUS[1], fill, cbar=True, 
-                cmap='viridis', thresh=0.01, levels=20)
+for z in np.linspace(csims.FOCUS[2] + 10, csims.FOCUS[2] - 10, 11):
+    out_removed = remove_outliers(get_rays_at_z(out, z), threshold=5)
+    #points = remove_outliers(get_rays_at_z(out, z), threshold=5)
+    points = out_removed[[0, 1, 2]]
+    plt.figure(figsize=(5, 5))
+    sns.kdeplot(x=points[0], y=points[1] - csims.FOCUS[1], fill=True, cbar=True, 
+                cmap='viridis', thresh=0.01, levels=20, norm=mpl.colors.LogNorm())
     #sns.histplot(x=points[0], y=points[1] - csims.FOCUS[1], cbar=True)
     plt.scatter(0, 0, s=1, color='black')
     plt.axis('equal')
@@ -4551,29 +4547,23 @@ for z in np.linspace(-10.9, -30.9, 11):
 
 #+RESULTS:
 :RESULTS:
-[[file:./.ob-jupyter/36da2b3ae151df19d6c521f15f8ec39a6b2448ce.png]]
-[[file:./.ob-jupyter/9f192834b65a7941bab8afcc8de4677f52f6c54d.png]]
-[[file:./.ob-jupyter/d9bd58fd21faf4f710e33dae48fde3ca07bc0762.png]]
-[[file:./.ob-jupyter/257cb2264ce64481ac423cfb2b34f02ea6ba4f19.png]]
-[[file:./.ob-jupyter/90e71b6b77526887081ee893988205985c790f25.png]]
-[[file:./.ob-jupyter/7c8ac0f8d0bf5007d9cbad1999c9e1c0317a5457.png]]
-[[file:./.ob-jupyter/e8f52a3b77be9611c30113a06ae4ce8178c5d317.png]]
-[[file:./.ob-jupyter/ea3cde2061d471ee433642733f37872aa1737a9a.png]]
-[[file:./.ob-jupyter/8d8cf111de55492804990655bea91200cf9e47f1.png]]
-[[file:./.ob-jupyter/6338c861a7c0edb004f3c32e757ed7d24358f422.png]]
-[[file:./.ob-jupyter/eccdb195b57aa17d57560517ac3e1376ef7dd0ed.png]]
+[[file:./.ob-jupyter/6cef6e0bccf5e42a499203a64222a313b4ef7ab0.png]]
+[[file:./.ob-jupyter/fab1c8c6a2b1c9132c06e2988a14053c4cb71a29.png]]
+[[file:./.ob-jupyter/9ed55f3532849980819cb528aff97fdfb351d8d2.png]]
+[[file:./.ob-jupyter/e1f28b824f110fd5f6e3a8e4beaeb933cce05f35.png]]
+[[file:./.ob-jupyter/e548f9f156c96c6193085d1a51cc83e021ee2596.png]]
+[[file:./.ob-jupyter/003b7648f8700bdf0a73c5e0a9fa21d3dece2577.png]]
+[[file:./.ob-jupyter/10a8f75b8e0b7078475f1bf958c6a9e55872a24e.png]]
+[[file:./.ob-jupyter/2857c254a791c0f5b0472125cd8a3446d92147a3.png]]
+[[file:./.ob-jupyter/295da0ef962cfd11266259c8cdb336bffba1776c.png]]
+[[file:./.ob-jupyter/31b44dd4254289765ddd2ed0439456a3ee4454d9.png]]
+[[file:./.ob-jupyter/4212b6bf079b8425a9757b55ced0a618ddf7a8bf.png]]
 :END:
 
 I guess we just have to run things now...
 
 Can do the standard deviation of rays vs z position graph here too I guess.
 
-#+BEGIN_SRC jupyter-python :session py :kernel python3
-# just subtract our z coordinate until we hit -20.9
-def get_distances_at_z(out, z_coordinate):
-   iters = (out[2] - z_coordinate) / out[10]
-   return out[3] - iters / csims.mm_to_in
-#+END_SRC
 
 #+RESULTS:
 
@@ -5036,7 +5026,7 @@ plt.figure(figsize=(10, 6))
 plt.plot(np.array(z_vals)[:, 0], np.array(z_vals)[:, 2], '.')
 plt.title('Tracing set of initial rays through the FTS (one path)')
 plt.ylabel('standard deviation of path length (mm)')
-plt.xlabel('FTS z position (mm)')
+plt.xlabel('FTS z position')
 #plt.axhline(.5, label='1/2 wavelength of 300 Ghz', linestyle='--', color='black')
 #plt.legend()
 #plt.xlim(-50, 50)
@@ -5281,10 +5271,11 @@ total number of rays making it all the way through = 1
 
 * Loading in some full reverse runs just like before!
 
-#+BEGIN_SRC jupyter-python :session py2 :kernel python3
+#+BEGIN_SRC jupyter-python :session py :kernel python3
 import notebook_utils
 import pickle
 import numpy as np
+import matplotlib.pyplot as plt
 
 def load_data(fname):
     total_attrs = pickle.load(open(fname, 'rb'))
@@ -5312,7 +5303,7 @@ def plot_data(data, shift):
 
 #+RESULTS:
 
-#+BEGIN_SRC jupyter-python :session py2 :kernel python3
+#+BEGIN_SRC jupyter-python :session py :kernel python3
 data, shifts = load_data('data/total_attrs_xz_15_15_20_57.p')
 
 for i in range(len(shifts)):
@@ -5321,5 +5312,3150 @@ for i in range(len(shifts)):
 #+END_SRC
 
 #+RESULTS:
-[[file:./.ob-jupyter/c0c9ba51ff493a772b44bcfc4668e43a63d9c399.png]]
+[[file:./.ob-jupyter/79b81c7cde9d4686b70caab62b5f06f5d5ce6d03.png]]
 
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+rays_test = csims.get_final_rays_reversed([-.5, .5, 0], 20, theta_bound=.25)
+transformed_test = transform_rays_to_fts_frame(rays_test)
+
+points, vectors, total_distances = step_rays(
+    transformed_test, config, run_ray_through_sim, config, [0, 0, 0], 
+    possible_paths[6], final_dist=0)
+#+END_SRC
+
+#+RESULTS:
+: initial number of rays = 351
+: total number of rays making past the first ellipse = 350
+: total number of rays making it all the way through = 1
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.around(np.linspace(-.45, .45, 15), 3)
+#+END_SRC
+
+#+RESULTS:
+: array([-0.45 , -0.386, -0.321, -0.257, -0.193, -0.129, -0.064,  0.   ,
+:         0.064,  0.129,  0.193,  0.257,  0.321,  0.386,  0.45 ])
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+data, shifts = load_data('data/total_attrs_xy_15_15_20_57.p')
+
+def plot_freq_shifts(y_data, z_data, values, clabel=None, cmap=None):
+    plt.figure(figsize=(10, 5))
+    plt.scatter(y_data, values, c=z_data, cmap=cmap, alpha=.6)
+    if (clabel is not None):
+        plt.colorbar(label=clabel)
+    plt.grid()
+
+cmap = plt.get_cmap('inferno')
+s1 = np.where((shifts[:, 2] == 0) & (np.abs(shifts[:, 1]) <= .6))
+#s1 = np.where((shifts_xy[:, 0]) == 0)
+plot_freq_shifts(25.4 * shifts[:, 1][s1], 25.4 * shifts[:, 0][s1], data[:, 6][s1],
+                 clabel='z shift (mm)', cmap=cmap)
+#plt.ylim(-.005, .007)
+plt.xlabel('y shift (mm)')
+plt.ylabel('fractional frequency shift (Ghz)')
+plt.title('frequency correction factor, detector shifting in x and y (z centered)')
+#plt.savefig('frequency_shift.png')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/c1033454d8d0e16422232cbd5948489b7ec1f65c.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+data, shifts = load_data('data/total_attrs_xy_15_15_20_57.p')
+
+def plot_freq_shifts(y_data, z_data, values, clabel=None, cmap=None):
+    plt.figure(figsize=(10, 5))
+    plt.scatter(y_data, values, c=z_data, cmap=cmap, alpha=.6)
+    if (clabel is not None):
+        plt.colorbar(label=clabel)
+    plt.grid()
+
+cmap = plt.get_cmap('inferno')
+s1 = np.where((shifts[:, 2] == 0) & (np.abs(shifts[:, 1]) <= .6))
+#s1 = np.where((shifts_xy[:, 0]) == 0)
+plot_freq_shifts(25.4 * shifts[:, 1][s1], 25.4 * shifts[:, 0][s1], (1.017 / 1.015) / (data[:, 6][s1] + 1),
+                 clabel='z shift (mm)', cmap=cmap)
+#plt.ylim(-.005, .007)
+plt.xlabel('y shift (mm)')
+plt.ylabel('fractional frequency shift (Ghz)')
+plt.title('frequency correction factor, detector shifting in x and y (z centered)')
+#plt.savefig('frequency_shift.png')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/41d0b5f08eeb01d73fee69703df0c59e6366999c.png]]
+
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plt.figure(figsize=(6, 5))
+plt.scatter(25.4 * shifts[:, 0][s1], 25.4 * shifts[:, 1][s1], c=100 * (data[:, 6][s1] - np.min(data[:, 6][s1])), 
+            cmap='inferno')
+#plt.xlim(-9.5, 9.5)
+plt.colorbar(label='frequency shift (%)')
+plt.xlabel('detector x position (mm)')
+plt.ylabel('detector y position (mm)')
+plt.title('Frequency shift at z = 0')
+plt.axis('equal')
+plt.savefig('/Users/tommyalford/Desktop/paper_figures/focal_plane_freq_shift.png')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/c76d555be54c75eb247d8fe7c1d71ec96c1cfc60.png]]
+
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plt.figure(figsize=(6, 5))
+data_freq_shift, shifts_freq_shift = load_data('data/total_attrs_xy_15_15_20_57_freq_shift.p')
+plt.scatter(25.4 * shifts_freq_shift[:, 0][s1], 25.4 * shifts_freq_shift[:, 1][s1], 
+            c=100 * (data_freq_shift[:, 6][s1] - np.mean(data_freq_shift[:, 6][s1])), 
+            cmap='RdBu', norm=mpl.colors.TwoSlopeNorm(vcenter=0))
+#plt.xlim(-9.5, 9.5)
+
+plt.colorbar(label='frequency shift from (%)')
+plt.xlabel('detector x position (mm)')
+plt.ylabel('detector y position (mm)')
+plt.title('Frequency shift at z = 0, tilted source')
+plt.axis('equal')
+plt.savefig('/Users/tommyalford/Desktop/paper_figures/focal_plane_freq_shift.png')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/80120ee56660f7e3d785a065a6bf584d0c0aa5aa.png]]
+
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+data, shifts = load_data('data/total_attrs_xy_15_15_20_57.p')
+s1 = np.where((shifts[:, 2] == 0) & (np.abs(shifts[:, 1]) <= 10))
+plt.plot(25.4 * np.sqrt(shifts[:, 0][s1] ** 2 + shifts[:, 1][s1] ** 2), 
+         1 / (1 + data[:, 6][s1]), '.')
+#plt.xlim(-9.5, 9.5)
+#plt.colorbar()
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/72f4eef1b2a179a137b46ffa09ef72001c5da25f.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+def fit_poly(freqs, data, order=7):
+    poly_params = np.polyfit(freqs, data, order)
+    freq_eval = np.arange(15, 250, .1)
+    poly_template = np.polyval(poly_params, freqs)
+    return freqs, poly_template
+
+fig, axes = plt.subplots(5, 5, figsize=(15, 15), sharex=True, sharey=True)
+for j, x in enumerate(np.unique(shifts[:, 0])[[1, 4, 7, 10, 13]]):
+    for i, z in enumerate(np.unique(shifts[:, 1])[::-1][[1, 4, 7, 10, 13]]):
+        plot_shift = [x, z, 0]
+        n = get_shift_index(data, plot_shift)
+        rays = data[n][-1]
+        delay = data[n][1]
+        shift = data[n][0]
+
+        gaussian_shifts = data[n][2]
+        gaussian_amplitudes = data[n][4]
+        freqs = data[n][-2]
+        freq_plot, yvals = fit_poly(freqs, gaussian_amplitudes / np.max(gaussian_amplitudes), order=7)
+        axes[i][j].plot(freq_plot, yvals, color='blue')
+        #axes[i][j].plot(freqs, gaussian_amplitudes / np.max(gaussian_amplitudes), '.', color='blue')
+        axes[i][j].grid()
+        axes[i][j].set_xlim(0, 300)
+        axes[i][j].set_title('(%d, %.0f, %d)' %tuple(np.multiply(shift, 25.4)))
+        #axes[i][j].set_ylim(0, -.10)
+        if (i == 4):
+            axes[i][j].set_xlabel('frequency (Ghz)')
+
+        if (j == 0):
+            axes[i][j].set_ylabel('normalized amplitude')
+        
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/c1d77d86ec4031b9f8ded22a317456e763343ca4.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+data_z, shifts_z = load_data('data/total_attrs_xyz_5_5_11_20_57.p')
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.unique(shifts_z[:, 2][::-1])[2:-2]
+#+END_SRC
+
+#+RESULTS:
+: array([-2.4, -1.6, -0.8,  0. ,  0.8,  1.6,  2.4])
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.unique(shifts_z[:, 0])
+#+END_SRC
+
+#+RESULTS:
+: array([-0.45 , -0.225,  0.   ,  0.225,  0.45 ])
+
+
+#+BEGIN_SRC jupyter-python :session py2 :kernel python3
+fig, axes = plt.subplots(7, 5, figsize=(10, 10), sharex=True, sharey=True)
+for j, x in enumerate(np.unique(shifts_z[:, 0])):
+    for i, z in enumerate(np.unique(shifts_z[:, 2])[2:-2]):
+        plot_shift = [x, 0, z]
+        n = get_shift_index(data_z, plot_shift)
+        rays = data_z[n][-1]
+        delay = data_z[n][1]
+        shift = data_z[n][0]
+
+        gaussian_shifts = data_z[n][2]
+        gaussian_amplitudes = data_z[n][4]
+        freqs = data_z[n][-2]
+        _, yvals = fit_poly(freqs, gaussian_amplitudes / np.max(gaussian_amplitudes), 
+                            order=7)
+        yvals /= np.max(yvals)
+        axes[i][j].plot(freqs, yvals, color='blue')
+        axes[i][j].grid()
+        axes[i][j].set_title('(%.1f, %.0f, %.1f)' %tuple(np.multiply(shift, 1)))
+
+        if (i == 6):
+            axes[i][j].set_xlabel('frequency (Ghz)')
+
+        if (j == 0):
+            axes[i][j].set_ylabel('normalized amplitude')
+        axes[i][j].set_xlim(20, 300)
+        
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/d16f28b8601be4c621b09019f5cc0ca324fab5ca.png]]
+
+* Looking at the frequency shift
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+data_freq_shift, shifts_freq_shift = load_data('data/total_attrs_xy_15_15_20_57_freq_shift.p')
+
+cmap = plt.get_cmap('inferno')
+s1 = np.where((shifts_freq_shift[:, 2] == 0) & (np.abs(shifts_freq_shift[:, 1]) <= .6))
+#s1 = np.where((shifts_xy[:, 0]) == 0)
+plot_freq_shifts(25.4 * shifts_freq_shift[:, 1][s1], 25.4 * shifts_freq_shift[:, 0][s1], 
+                 (1.052 / 1.055) / (data_freq_shift[:, 6][s1] + 1), clabel='x shift (mm)', cmap=cmap)
+#plt.ylim(-.005, .007)
+plt.xlabel('y shift (mm)')
+plt.ylabel('fractional frequency shift (Ghz)')
+plt.title('frequency correction factor, detector shifting in x and y (z centered)')
+#plt.savefig('frequency_shift.png')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/25e99c46cdc70b8fc7c18718d4f97b9e1811043d.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+data_freq_shift, shifts_freq_shift = load_data('data/total_attrs_xy_15_15_20_57_freq_shift.p')
+plt.scatter(25.4 * shifts_freq_shift[:, 0][s1], 25.4 * shifts_freq_shift[:, 1][s1], 
+            c=100 * (data_freq_shift[:, 6][s1] - np.mean(data_freq_shift[:, 6][s1])), 
+            cmap='RdBu', norm=mpl.colors.TwoSlopeNorm(vcenter=0))
+#plt.xlim(-9.5, 9.5)
+plt.colorbar()
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/fe190fc5441ec53f050d3b3621a2486802165571.png]]
+
+* Finding the focus
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.arange(-22.1, -20.1, .2)
+#+END_SRC
+
+#+RESULTS:
+: array([-22.1, -21.9, -21.7, -21.5, -21.3, -21.1, -20.9, -20.7, -20.5,
+:        -20.3])
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+for z in np.arange(-21.9, -19.9, .2):
+    points = remove_outliers(get_rays_at_z(out_cleaned, z), threshold=5)
+    #points = out[[0, 1, 2]]
+    plt.figure(figsize=(3, 3))
+    sns.kdeplot(x=points[0], y=points[1] - csims.FOCUS[1], fill=True, cbar=True, 
+                cmap='viridis', thresh=0.01, levels=20)
+    #sns.histplot(x=points[0], y=points[1] - csims.FOCUS[1], cbar=True)
+    plt.scatter(0, 0, s=1, color='black')
+    plt.axis('equal')
+    # plt.xlim(-4, 4)
+    # plt.ylim(-4, 4)
+    plt.title('z = %.1f' %(z - csims.FOCUS[2]))
+    plt.show()
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+[[file:./.ob-jupyter/92b0b43ee6b0e1fc6029327cc5cebac3d3715d32.png]]
+[[file:./.ob-jupyter/84ecdb60366e033309b3cfb2c1a8a8ff84394eca.png]]
+[[file:./.ob-jupyter/5680633f4fb87a5869f7a552003f28a3b96137f9.png]]
+[[file:./.ob-jupyter/3ee9bb4bbdbc59318350fb2f9b63f45b53e7bef1.png]]
+[[file:./.ob-jupyter/326bbe7bf3c9d3a730fa344f34d7072175e2a1b0.png]]
+[[file:./.ob-jupyter/607e97e0b24352ee830b3d73cbcfe724c5afa8ae.png]]
+[[file:./.ob-jupyter/1f71936de8d63cf2e97cbfde5e06fc54690e7cf0.png]]
+[[file:./.ob-jupyter/e53a177aeb43f1151af602534fa5618f05667b47.png]]
+[[file:./.ob-jupyter/2caaa6870da4009849bee0374624b71e95b94961.png]]
+[[file:./.ob-jupyter/8a1a0decb4f8ab68bfd17609ecb86526930030a6.png]]
+:END:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+for z in np.arange(-19.9, -17.9, .2):
+    points = remove_outliers(get_rays_at_z(out_cleaned, z), threshold=5)
+    #points = out[[0, 1, 2]]
+    plt.figure(figsize=(3, 3))
+    sns.kdeplot(x=points[0], y=points[1] - csims.FOCUS[1], fill=True, cbar=True, 
+                cmap='viridis', thresh=0.01, levels=20)
+    #sns.histplot(x=points[0], y=points[1] - csims.FOCUS[1], cbar=True)
+    plt.scatter(0, 0, s=1, color='black')
+    plt.axis('equal')
+    # plt.xlim(-4, 4)
+    # plt.ylim(-4, 4)
+    plt.title('z = %.1f' %(z - csims.FOCUS[2]))
+    plt.show()
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+[[file:./.ob-jupyter/88b5532c13e0e5bf7c6a403102a5fa6f40717d5c.png]]
+[[file:./.ob-jupyter/d4f943903e7b2ca5b0bd62d31c1108809eee7417.png]]
+[[file:./.ob-jupyter/a3f66eb6f537b35d70c4a7ab687c7a25beaa35f6.png]]
+[[file:./.ob-jupyter/fe5a5ab67d282de57f843385d6652f22d76b1d2f.png]]
+[[file:./.ob-jupyter/915ce3bc69652663c1a7b3a821465ac858d97da2.png]]
+[[file:./.ob-jupyter/5a0d621403ac4adf519f51cea18890cf194e9592.png]]
+[[file:./.ob-jupyter/89bb081cd307cf1e6f5ce4dc464a1d53f418cd62.png]]
+[[file:./.ob-jupyter/45fa568cbfda24caa0238f6ea5ba2875353cd71c.png]]
+[[file:./.ob-jupyter/275d1ccf9c6c1fc343bff43b2c517a388011189b.png]]
+[[file:./.ob-jupyter/b6d893a75557b2ea31d1826f6ec7eff5cabea73a.png]]
+:END:
+
+* Final Transfer Function stuff
+
+#+BEGIN_SRC jupyter-python :session py2 :kernel python3
+data_z, shifts_z = load_data('data/total_attrs_xyz_5_5_5_20_57.p')
+#+END_SRC
+
+#+RESULTS:
+
+
+#+BEGIN_SRC jupyter-python :session py2 :kernel python3
+fig, axes = plt.subplots(5, 5, figsize=(10, 10), sharex=True, sharey=True)
+for j, x in enumerate(np.unique(shifts_z[:, 1])):
+    for i, z in enumerate(np.unique(shifts_z[:, 2])):
+        plot_shift = [x, 0, z]
+        n = get_shift_index(data_z, plot_shift)
+        rays = data_z[n][-1]
+        delay = data_z[n][1]
+        shift = data_z[n][0]
+
+        gaussian_shifts = data_z[n][2]
+        gaussian_amplitudes = data_z[n][4]
+        freqs = data_z[n][-2]
+        # _, yvals = fit_poly(freqs, gaussian_amplitudes / np.max(gaussian_amplitudes), 
+        #                     order=7)
+        # yvals /= np.max(yvals)
+        yvals = gaussian_amplitudes / np.max(gaussian_amplitudes)
+        axes[i][j].plot(freqs, yvals, '.', color='blue')
+        axes[i][j].grid()
+        axes[i][j].set_title('(%.1f, %.0f, %.1f)' %tuple(np.multiply(shift, 25.4)))
+
+        if (i == 6):
+            axes[i][j].set_xlabel('frequency (Ghz)')
+
+        if (j == 0):
+            axes[i][j].set_ylabel('normalized amplitude')
+        axes[i][j].set_xlim(20, 300)
+        
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/6c178c52e576ba651c2c67a05deaec2a68f98218.png]]
+
+* Paper Outline
+10 pages, what
+
+1 page for science- see first page of ACT paper
+
+- mention the need for precision calibration
+  - mention the need for 
+
+section for simulating the FTS + coupling optics
+
+- figure of a reverse raytrace
+
+
+section for the simulation results
+- frequency shift at focus
+- frequency shift when moving around in z
+- transfer functions at focus
+- transfer functions when moving around in z
+  
+- frequency shift when changing source angle
+- mention the effect that the source angle has on things
+  
+section for other color corrections:
+- thin membrane window (still in progress)
+- lens dissipation
+  
+
+section for bandpasses- ACT
+
+- show an example of the number of detectors illuminated per region
+- show all the bands
+- show the frequency shift that we see
+- show band centers, widths, SNR, 5% band edges, etc
+  
+
+section for bandpasses- SO LATRt optics tube
+
+- mention the different source
+- mention that the changes do not significantly effect what we see
+- mention the new demodulation
+- NDF filter?
+  
+- all the error bars from the bootstrapping to the error bars from the NDF
+  
+- show frequency shift seen and note that it is pretty negligible
+  - the 'beam maps' of SNR and frequency shift, that is
+    
+total_attrs_xz_5_5_11_20_57.p
+
+
+* Paper Plots
+** Plot of the Forward and Reverse Raytrace Distributions
+*** z = -10
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plt.figure(figsize=(5, 5))
+out_removed = remove_outliers(get_rays_at_z(out, csims.FOCUS[2] - 10), threshold=5)
+points = out_removed[[0, 1, 2]]
+sns.kdeplot(x=points[0], y=points[1] - csims.FOCUS[1], fill=True, cbar=False, 
+            cmap='viridis', thresh=0.01, levels=20, alpha=.4)
+
+shift_z_data = shift_snr_data[np.where(shift_snr_data[:, 2] == -10)]
+plt.scatter(shift_z_data[:, 0], shift_z_data[:, 1], c=shift_z_data[:, 3],
+            norm=mpl.colors.LogNorm())
+
+
+
+plt.scatter(0, 0, s=1, color='black')
+plt.axis('equal')
+plt.xlim(-4, 4)
+plt.ylim(-4, 4)
+plt.title('z shift = %.1f' %(-10 - csims.FOCUS[2]))
+plt.show()
+
+
+# plt.figure(figsize=(10, 10))
+# shift_z_data = shift_snr_data[np.where(shift_snr_data[:, 2] == -10)]
+# plt.scatter(shift_z_data[:, 0], shift_z_data[:, 1], c=shift_z_data[:, 3],
+#             norm=mpl.colors.LogNorm())
+# plt.title('z shift = %s' %z)
+# plt.colorbar(label='# of rays making it through the FTS')
+# plt.axis('equal')
+# plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/ca7c7fb1ce23aa981f82e66688b34a7e988d0967.png]]
+
+*** z = 0
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plt.figure(figsize=(5, 5))
+out_removed = remove_outliers(get_rays_at_z(out, csims.FOCUS[2]), threshold=5)
+points = out_removed[[0, 1, 2]]
+sns.kdeplot(x=points[0], y=points[1] - csims.FOCUS[1], fill=True, cbar=False, 
+            cmap='viridis', thresh=0.01, levels=20, alpha=.4)
+
+shift_z_data = shift_snr_data[np.where(shift_snr_data[:, 2] == 0)]
+plt.scatter(shift_z_data[:, 0], shift_z_data[:, 1], c=shift_z_data[:, 3],
+            norm=mpl.colors.LogNorm())
+
+plt.scatter(0, 0, s=1, color='black')
+plt.axis('equal')
+plt.xlim(-.8, .8)
+plt.ylim(-.8, .8)
+plt.title('z shift = %.1f' %(0))
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/c1b3c8a088c93106b8b80ca240c26df533e93c2d.png]]
+
+** A Raytrace Plot showing the FTS and Coupling optics
+- use the highest resolution here for the surfaces- going to nix that
+- do the raytrace in reverse
+  
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+shift = [0, 0, 0]
+start_position = np.add(csims.FOCUS, shift)
+
+fig = go.Figure()
+
+with open("lab_fts_dims_act.yml", "r") as stream:
+    config = yaml.safe_load(stream)
+
+out = csims.run_rays_through_coupling_optics_reversed(start_position, fts_geo, 'black', fig, n_linear=10,
+                                                      theta_bound=.23, plot=True, alpha=.25)
+
+start_rays_mcmahon = [csims.convert_to_ray_mcmahon(out_arr) for out_arr in out.T]
+
+rays, path_diffs = transform_rays_end_tilt_path_diffs(
+    start_rays_mcmahon, config, plot=True, plot_mirror_position=10, fig=fig, ray_alpha=.05)
+
+fig.show()
+#+END_SRC
+
+#+RESULTS:
+: initial number of rays = 100
+: total number of rays making past the first ellipse = 100
+: total number of rays making it all the way through = 80
+: initial number of rays = 100
+: total number of rays making past the first ellipse = 100
+: total number of rays making it all the way through = 80
+
+[[/Users/tommyalford/Desktop/plots/20_raytrace.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+shift = [0, 0, 0]
+start_position = np.add(csims.FOCUS, shift)
+
+fig = go.Figure()
+
+with open("lab_fts_dims_act.yml", "r") as stream:
+    config = yaml.safe_load(stream)
+
+out = csims.run_rays_through_coupling_optics_reversed(start_position, fts_geo, 'black', fig, n_linear=1,
+                                                      theta_bound=0, plot=False, alpha=.15)
+
+start_rays_mcmahon = [csims.convert_to_ray_mcmahon(out_arr) for out_arr in out.T]
+
+rays, path_diffs = transform_rays_end_tilt_path_diffs(
+    start_rays_mcmahon, config, plot=True, plot_mirror_position=20, fig=fig, ray_alpha=1)
+
+fig.update_layout(scene = dict(xaxis_title='Z (mm)', yaxis_title='Y (mm)',
+                                zaxis_title='X (mm)',
+                    yaxis=dict(range=[-400, 400]),
+                    zaxis=dict(range=[-50, 50]),
+                    xaxis=dict(range=[-300, 300])),
+                    width=700)#,
+
+fig.show()
+#+END_SRC
+
+#+RESULTS:
+: initial number of rays = 1
+: total number of rays making past the first ellipse = 1
+: total number of rays making it all the way through = 1
+: initial number of rays = 1
+: total number of rays making past the first ellipse = 1
+: total number of rays making it all the way through = 1
+
+** Amplitude Transfer Functions
+- test out what happens when we plot over radius as well
+- e.g. plot frequency shift vs radius from center
+  - then could color this by z coordinate or something too
+*** Amplitude Transfer Function, z=0
+- see plot:
+[[/Users/tommyalford/Desktop/paper_figures/z_0_transfers.png]]
+[[/Users/tommyalford/Desktop/paper_figures/z_0_transfers.png]]
+
+*** Amplitude Transfer Function, z=-10
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+data, shifts = load_data('data/total_attrs_xyz_20_20_z_shift=-10_20_57.p')
+
+def plot_freq_shifts(y_data, z_data, values, clabel=None, cmap=None):
+    plt.figure(figsize=(10, 5))
+    plt.scatter(y_data, values, c=z_data, cmap=cmap, alpha=.6)
+    if (clabel is not None):
+        plt.colorbar(label=clabel)
+    plt.grid()
+
+cmap = plt.get_cmap('inferno')
+s1 = np.where((shifts[:, 2] <= 100) & (shifts[:, 0] == np.min(np.abs(shifts[:, 0]))))
+#s1 = np.where((shifts_xy[:, 0]) == 0)
+plot_freq_shifts(25.4 * shifts[:, 1][s1], 25.4 * shifts[:, 0][s1], 1 / (1 + data[:, 6][s1]),
+                 clabel='z shift (mm)', cmap=cmap)
+#plt.ylim(-.005, .007)
+plt.ylim(1, 1.2)
+plt.xlabel('y shift (mm)')
+plt.ylabel('fractional frequency shift (Ghz)')
+plt.title('frequency correction factor, detector shifting in x and y (z centered)')
+#plt.savefig('frequency_shift.png')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/d23039218f1304f4b16a0b6c8f92513197c01701.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plt.plot(np.sqrt(shifts[:, 0][s1] ** 2 + shifts[:, 1][s1] ** 2), 
+         1 / (1 + data[:, 6][s1]), '.')
+plt.axhline(notebook_utils.smart_rms(1 / (1 + data[:, 6][s1]), 20, 3)[0], color='black')
+plt.ylim(1, 1.1)
+#plt.colorbar()
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/4bdcda1727cd0ca9820f7a311d6cf5e11a08f79d.png]]
+
+# Maybe try getting the frequency shift here but for nonoutliers and do it at
+# specific frequencies-- e.g. 90, 150, etc to also reduce outliers for now i'd
+# say just keep this as-is though..
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+notebook_utils.smart_rms(1 / (1 + data[:, 6][s1]), 20, 3)
+#+END_SRC
+
+#+RESULTS:
+: (1.051896375632559, 0.0045848488165254825)
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plt.scatter(shifts[:, 0][s1], shifts[:, 1][s1], c=1 / (1 + data[:, 6][s1]), 
+            cmap='inferno', vmin=1, vmax=1.1)
+#plt.xlim(-9.5, 9.5)
+plt.colorbar()
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/2251f529f94ca89f7b54702bf8e66b21f9fe311c.png]]
+
+*** Amplitude Transfer Function varying z
+- see plot:
+[[/Users/tommyalford/Desktop/paper_figures/z_shift_transfers.png]]
+[[/Users/tommyalford/Desktop/paper_figures/z_shift_transfers.png]]
+
+*** Amplitude Transfer Function, z=0 freq shifted
+-done
+*** Amplitude Transfer Function varying z freq shifted
+-done
+** Frequency Shift
+*** No source tilt
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plt.plot(np.array(data[:, 2])[0])
+plt.plot(np.array(data[:, 2])[1])
+plt.plot(np.array(data[:, 2])[2])
+plt.plot(np.array(data[:, 2])[3])
+plt.plot(np.array(data[:, 2])[60])
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/59d4e1b29629a99c10ac0edfa6b637c3b719f3cd.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+index_f
+#+END_SRC
+
+#+RESULTS:
+: 25
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+f = 40
+index_f = np.where(freqs == f)[0][0]
+plt.plot(rs[s1], 100 * (freq_shift_data[:, index_f] + .015), '.')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/7a2653168f4cd76f73ab9b0595ace89b7edaa764.png]]
+
+
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+min_vals = np.min(100 * (freq_shift_data + .015), axis=0)
+max_vals = np.max(100 * (freq_shift_data + .015), axis=0)
+plt.plot(freqs, min_vals, label='mins')
+plt.plot(freqs, max_vals, label='maxes')
+plt.plot(freqs, max_vals - min_vals, label='diffs')
+plt.legend()
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/7faad2634f47877f7ba41e5ef4e0d89b0ccf68f7.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+# now for f in this range, get the min and max intervals
+for f in freqs:
+    index_f = np.where(freqs == f)[0][0]
+    #min_val = np.min(100 * freq_shfit_data[s1][:, index_f] + .015)
+    #max_val = np.min(100 * freq_shfit_data[s1][:, index_f] + .015)
+    plt.plot(rs[s1], 100 * (freq_shift_data[:, index_f] + .015), '.')
+    plt.show()
+#+END_SRC
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+min_ind = np.where(rs == np.min(rs))[0][0]
+plt.plot(freq_shift_data[min_ind])
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/50f92900168d73f7d8456bb85847ca27a1f4b87b.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+test = data[22, -1][299, :, 2].flatten()
+plt.hist(test[test.nonzero()])
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/4be3d5fb962748c72804cc0023a29db28d482ed9.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+from sklearn.cluster import KMeans
+km = KMeans(n_clusters=2)
+km.fit(test[test.nonzero()].reshape(-1, 1))
+np.diff(km.cluster_centers_[:, 0])[0] / 40
+#+END_SRC
+
+#+RESULTS:
+: -0.9839483700079199
+
+# try making some fake interferograms to test this out....
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+diffs = []
+poses = np.linspace(-20, 20, 400)
+for i, pos in enumerate(poses):
+    test = data[22, -1][i, :, 2].flatten()
+    km = KMeans(n_clusters=2)
+    km.fit(test[test.nonzero()].reshape(-1, 1))
+    diff = np.abs(np.diff(km.cluster_centers_[:, 0])[0] / (4 * pos))
+    diffs.append(diff)
+
+plt.plot(poses, diffs, '.')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+
+
+[[file:./.ob-jupyter/81800047bf058ad5aff6d81c3a0b4d5c4bfe1159.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.median(1 - np.array(diffs))
+#+END_SRC
+
+#+RESULTS:
+: 0.013721353493440835
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plt.plot(poses, 1 - np.array(diffs), '.')
+plt.grid()
+plt.ylim(0, .02)
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/556ee79290262719906774546f649aac3cff0392.png]]
+
+# Ok I should really test this path length difference now...
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.arccos(.98) * 180 / np.pi
+#+END_SRC
+
+#+RESULTS:
+: 11.478340954533579
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+data, shifts = load_data('data/total_attrs_xy_15_15_20_57.p')
+freqs = data[:, -2][0]
+plt.figure(figsize=(6, 5))
+rs = np.sqrt(shifts[:, 0] ** 2 + shifts[:, 1] ** 2)
+s1 = np.where((shifts[:, 2] == 0) & (rs <= (15 / 25.4)))
+freq_shift_data = np.array(list(data[:, 2][s1]))
+index_40 = np.where(freqs == 40)[0][0]
+plt.scatter(25.4 * shifts[:, 0][s1], 25.4 * shifts[:, 1][s1], 
+            c=(freq_shift_data[:, index_40] + .015) * 100, 
+            cmap='inferno')
+#plt.xlim(-9.5, 9.5)
+plt.colorbar(label='frequency shift (%)')
+plt.xlabel('detector x position (mm)')
+plt.ylabel('detector y position (mm)')
+plt.title('Frequency shift at z = 0')
+plt.axis('equal')
+plt.tight_layout()
+#plt.savefig('/Users/tommyalford/Desktop/paper_figures/focal_plane_freq_shift.png')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/c60393d3661a6855e94a259b4b655ffac3166b57.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+data, shifts = load_data('data/total_attrs_xy_15_15_20_57.p')
+plt.figure(figsize=(6, 5))
+s1 = np.where((shifts[:, 2] == 0) & (np.abs(shifts[:, 1]) <= 1))
+plt.scatter(25.4 * shifts[:, 0][s1], 25.4 * shifts[:, 1][s1], c=100 * (data[:, 6][s1] - np.min(data[:, 6][s1])), 
+            cmap='inferno')
+#plt.xlim(-9.5, 9.5)
+plt.colorbar(label='frequency shift (%)')
+plt.xlabel('detector x position (mm)')
+plt.ylabel('detector y position (mm)')
+plt.title('Frequency shift at z = 0')
+plt.axis('equal')
+plt.tight_layout()
+#plt.savefig('/Users/tommyalford/Desktop/paper_figures/focal_plane_freq_shift.png')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/8fb54c04239200099bc41af535e4ae0021c87b31.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+data, shifts = load_data('data/total_attrs_xy_15_15_20_57.p')
+plt.figure(figsize=(6, 5))
+plt.scatter(25.4 * shifts[:, 0][s1], 25.4 * shifts[:, 1][s1], c=100 * (data[:, 6][s1] - np.min(data[:, 6][s1])), 
+            cmap='inferno')
+#plt.xlim(-9.5, 9.5)
+plt.colorbar(label='frequency shift (%)')
+plt.xlabel('detector x position (mm)')
+plt.ylabel('detector y position (mm)')
+plt.title('Frequency shift at z = 0')
+plt.axis('equal')
+plt.tight_layout()
+#plt.savefig('/Users/tommyalford/Desktop/paper_figures/focal_plane_freq_shift.png')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/8fb54c04239200099bc41af535e4ae0021c87b31.png]]
+
+*** Source Tilt
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plt.figure(figsize=(6, 5))
+data_freq_shift, shifts_freq_shift = load_data('data/total_attrs_xy_15_15_20_57_freq_shift.p')
+plt.scatter(25.4 * shifts_freq_shift[:, 0][s1], 25.4 * shifts_freq_shift[:, 1][s1], 
+            c=100 * (data_freq_shift[:, 6][s1] - np.mean(data_freq_shift[:, 6][s1])), 
+            cmap='RdBu', norm=mpl.colors.TwoSlopeNorm(vcenter=0))
+#plt.xlim(-9.5, 9.5)
+
+plt.colorbar(label='frequency shift from (%)')
+plt.xlabel('detector x position (mm)')
+plt.ylabel('detector y position (mm)')
+plt.title('Frequency shift at z = 0, tilted source')
+plt.axis('equal')
+plt.tight_layout()
+plt.savefig('/Users/tommyalford/Desktop/paper_figures/focal_plane_freq_shift_source_tilt.png')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/d8a6db4120e642716d91112e45f6acb8ecdee141.png]]
+
+** Loss tangent color correction plot with error bars
+- check the distance out for this too
+  
+  #+BEGIN_SRC jupyter-python :session py :kernel python3
+out = csims.run_rays_through_coupling_optics_reversed(
+    csims.FOCUS, fts_geo, None, None, n_linear=25,
+theta_bound=.23, plot=False)
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.mean(out[4]), np.std(out[4])
+#+END_SRC
+
+#+RESULTS:
+: (0.7600722774650247, 0.026223519625013778)
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+100 * np.std(out[4]) / np.mean(out[4])
+#+END_SRC
+
+#+RESULTS:
+: 3.4501349940658077
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+freqs = np.arange(15, 300)
+plt.figure(figsize=(6, 4))
+mpl.rcParams.update({'font.size': 13})
+power_vals = []
+for freq in freqs:
+    power = np.mean(np.power(np.mean(out[4]), (freq / 300)))
+    power_vals.append(power)
+
+lower_limit = np.power(power_vals, 1e-4 / 3e-4)
+upper_limit = np.power(power_vals, 5e-4 / 3e-4)
+
+plt.plot(freqs, power_vals / np.max(power_vals), color='red')
+
+plt.fill_between(freqs, lower_limit / np.max(lower_limit), upper_limit / np.max(upper_limit), 
+                 color='lightpink')
+plt.grid()
+plt.ylim(0, 1)
+plt.xlim(15, 300)
+plt.title('Dissipative loss in coupling optics lenses, \n color correction limits')
+plt.xlabel('frequency (Ghz)')
+plt.ylabel('average ray intensity, normalized')
+plt.tight_layout()
+#plt.savefig('/Users/tommyalford/Desktop/paper_figures/loss_tangent_plot.png')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/f0aee413007cc1a5fbc8fa8e982feb150f6583c0.png]]
+
+** ACT channel positions
+- not really sure how much to show here, maybe just one run as an example
+[[/Users/tommyalford/Desktop/paper_figures/example_ACT_run.png]]
+[[/Users/tommyalford/Desktop/paper_figures/example_ACT_run.png]]
+** All ACT Bands
+*** Initial
+*** Log
+- let's just say I already have both of these for now
+  
+** Example run for ACT? maybe leave this out
+- leaving this out
+** Plot of the left/right asymmetry shifts for ACT
+- for now don't include the correction
+  
+[[/Users/tommyalford/Desktop/paper_figures/freq_shift_ACT.png]]
+
+** Image of the FTS Mounted above the window
+- get from slides
+[[/Users/tommyalford/Desktop/paper_figures/cryo_mount.png]]
+  
+** Initial passband measurements of the optics tube
+- show the averages only
+[[/Users/tommyalford/Desktop/paper_figures/initial_averages.png]]
+[[/Users/tommyalford/Desktop/paper_figures/initial_averages.png]]
+** Some FTS 'beam maps' for SNR and also center, upper edge, lower edge
+- will do these later, might not even be necessary
+** the NDF corrected bands along with bootstrapping errors
+[[/Users/tommyalford/Desktop/paper_figures/corrected_averages.png]]
+[[/Users/tommyalford/Desktop/paper_figures/corrected_averages.png]]
+- just take from the plot!
+** Run at z=10 a 20x20 grid of x and y values
+** Run at all z values changing just r and z- 40 r and 20 z should be pretty good
+** Checking to see what happens if we change the tilt angle in x
+
+* Making the color corrections
+** Frequency shift correction
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+data, shifts = load_data('data/total_attrs_xy_15_15_20_57.p')
+s1 = np.where((shifts[:, 2] == 0) & (np.abs(shifts[:, 1]) <= ((10 / np.sqrt(2)) / 25.4)))
+plt.plot(25.4 * np.sqrt(shifts[:, 0][s1] ** 2 + shifts[:, 1][s1] ** 2), 
+         1 / (1 + data[:, 6][s1]), '.')
+#plt.xlim(-9.5, 9.5)
+#plt.colorbar()
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+
+[[file:./.ob-jupyter/86d178625ce2cce1e9b90cde624b7605f6d4f1fd.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+# What I should really do is fit this distribution to a function in R
+x_vals = (25.4 * np.sqrt(shifts[:, 0][s1] ** 2 + shifts[:, 1][s1] ** 2))
+inds = np.argsort(x_vals)
+y_vals = 1 / (1 + data[:, 6][s1])
+plt.plot(x_vals[inds], y_vals[inds], '.')
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+: [<matplotlib.lines.Line2D at 0x7fa7202d6b80>]
+[[file:./.ob-jupyter/3649990c546fdf5ffd09f2096d88002ca1343010.png]]
+:END:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.savetxt('frequency_shift_fit_data.dat', np.array([x_vals[inds], y_vals[inds]]).T)
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plt.hist(1 / (1 + data[:, 6][s1]))
+plt.grid()
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/2ff0ee1130387449830f1251767fcf20020d6a86.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.median(1 / (1 + data[:, 6][s1]))
+#+END_SRC
+
+#+RESULTS:
+: 1.013864614089067
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.max(1 / (1 + data[:, 6][s1])) - np.median(1 / (1 + data[:, 6][s1]))
+#+END_SRC
+
+#+RESULTS:
+: 0.001482254473464062
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.min(data[:, 6][s1])
+#+END_SRC
+
+#+RESULTS:
+: -0.015114902145961503
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.mean(data[:, 6][s1])
+#+END_SRC
+
+#+RESULTS:
+: -0.013483679558610013
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+11.4 * 1.414
+#+END_SRC
+
+#+RESULTS:
+: 16.1196
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+.7 * 25.4
+#+END_SRC
+
+#+RESULTS:
+: 17.779999999999998
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+.6 * 25.4
+#+END_SRC
+
+#+RESULTS:
+: 15.239999999999998
+
+
+* Testing the path length difference for a centered ray
+
+- should also make the amplitude just the max of the interferogram... maybe?
+- try fitting a sinewave instead of taking the FFT!
+  
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+import notebook_utils
+import RayTraceFunctionsv2 as rt
+n_linear = 2
+FTS_stage_throw = 20.     # total throw extent in mm
+FTS_stage_step_size = 0.1  # FTS step size in mm
+# n_mirror_positions = (20 * 2 / .1)
+n_mirror_positions = (2 * FTS_stage_throw / FTS_stage_step_size)
+ymax = FTS_stage_throw
+
+with open("lab_fts_dims_act.yml", "r") as stream:
+    config = yaml.safe_load(stream)
+
+possible_paths = rt.get_possible_paths()
+
+# x_vals = np.linspace(-.65, .65, 1)
+# y_vals = np.linspace(-.65, .65, 1)
+# z_vals = np.linspace(0, 0, 1)
+
+x_vals = np.linspace(0, 0, 1)
+y_vals = np.linspace(0, 0, 1)
+z_vals = np.linspace(0, 0, 1)
+
+start_rays = csims.get_final_rays_reversed([0, 0, 0], theta_bound=.00001, 
+                                           n_linear=n_linear)
+transformed_start_rays = notebook_utils.transform_rays_to_fts_frame(start_rays)
+
+delay, final_rays = rt.run_all_rays_through_sim_optimized(
+    transformed_start_rays, config, n_mirror_positions, paths=possible_paths, 
+    ymax=FTS_stage_throw, progressbar=True)
+#+END_SRC
+
+#+RESULTS:
+: 100%|██████████| 400/400 [00:24<00:00, 16.34it/s]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+ray_mat = notebook_utils.rays_to_matrix(final_rays)
+nyquist_freq = notebook_utils.c / ((2 * ymax / n_mirror_positions) * 4 * 2)
+freqs = np.arange(15, nyquist_freq - 10 + 1)
+gaussian_shifts, peak_shifts, gaussian_amplitudes, fft_maxes = notebook_utils.plot_shifts(
+    delay, ray_mat, freqs, ymax, shift=shift)
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plt.plot(freqs, gaussian_shifts)
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/688ecd4efa64e42245debcbfe411f6087fc746f2.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+diffs = []
+for i, pos in enumerate(delay):
+    test = ray_mat[i, :, 2].flatten()
+    km = KMeans(n_clusters=2)
+    km.fit(test[test.nonzero()].reshape(-1, 1))
+    diff = np.abs(np.diff(km.cluster_centers_[:, 0])[0] / pos)
+    diffs.append(diff)
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plt.plot(poses, diffs, '.')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/9305b969254d55eb8e4be8691ae37ac2ee9af2f5.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+1 / np.array(diffs[0:10])
+#+END_SRC
+
+#+RESULTS:
+: array([1.01833848, 1.01833868, 1.01833886, 1.01833905, 1.01833924,
+:        1.01833943, 1.01833961, 1.01833979, 1.01833998, 1.01834016])
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+gaussian_shifts[:5]
+#+END_SRC
+
+#+RESULTS:
+: [-0.015747573177295374,
+:  -0.015097858909422612,
+:  -0.015630704705841936,
+:  -0.015328017973372157,
+:  -0.015583499437839035]
+
+At this point I think I should sum out the fields and look at the interference
+terms directly... why are these different? the path length difference is always
+the same relative to position. the same relative to position.....
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+final_rays[0][:8]
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+[[0.785398,
+  8.399445063175851e-13,
+  [251.2262663012911, 330.56917566303065, 0.0],
+  array([0.18871768, 0.98203138, 0.        ]),
+  3411.632669599506],
+ [2.3561943267948964,
+  1.3807405046434805e-12,
+  [251.22626630129116, 330.56917566303065, -1.1927818218587285e-35],
+  [0.1887176789690118, 0.9820313832279235, 3.241720550536643e-40],
+  3411.632669599505],
+ [2.3561943267948964,
+  0.09455966963802497,
+  [251.2262663012911, 330.56917566303065, 0.0],
+  [0.18871767896901168, 0.9820313832279235, 0.0],
+  3411.632669599506],
+ [2.3561943267948964,
+  1.3807258491023549e-12,
+  [236.3833345342063, 333.4262436035454, -2.8657350755951274e-14],
+  [0.18873748245978889, 0.9820275773697708, -6.94871757858078e-19],
+  3490.1920103297334],
+ [0.785398,
+  0.15544000725023469,
+  [236.38333453420634, 333.4262436035454, -2.865735075595127e-14],
+  array([ 1.88737482e-01,  9.82027577e-01, -6.94871758e-19]),
+  3490.1920103297334],
+ [0.785398,
+  8.399355908577134e-13,
+  [236.3833345342063, 333.42624360354546, -2.8657350755951274e-14],
+  array([ 1.88737482e-01,  9.82027577e-01, -6.94871758e-19]),
+  3490.1920103297334],
+ [0.785398,
+  0.15544165715505767,
+  [251.22626630129113, 330.5691756630306, -1.1927818218587285e-35],
+  array([1.88717679e-01, 9.82031383e-01, 3.24172055e-40]),
+  3411.632669599505],
+ [2.3561943267948964,
+  0.09455866595305502,
+  [236.38333453420634, 333.42624360354546, -2.8657350755951274e-14],
+  [0.18873748245978894, 0.9820275773697709, -6.94871757858078e-19],
+  3490.1920103297334]]
+#+end_example
+
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+test_rays = final_rays[0][:8]
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+polarizations = np.array(test_rays, dtype='object')[:, 0]
+intensities = np.array(test_rays, dtype='object')[:, 1]
+distances = np.array(test_rays, dtype='object')[:, 4]
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+distances
+#+END_SRC
+
+#+RESULTS:
+: array([3411.632669599506, 3411.632669599505, 3411.632669599506,
+:        3490.1920103297334, 3490.1920103297334, 3490.1920103297334,
+:        3411.632669599505, 3490.1920103297334], dtype=object)
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+test_rays = ray_mat[:, :8, :]
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+c = 300.
+test_rays = ray_mat[:, :8, :]
+lambda_calc = c / 300.
+ij = rt.get_interferogram(test_rays, lambda_calc)
+plt.plot(delay, ij)
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/06a09c82b8cdc75acc71dd417ef4c7acdff8c9c6.png]]
+
+
+
+Now make a new matrix of test rays that have our mathematica distances and see
+if things match up
+
+I should really go to bed though... but I want to see this through goddamnit.
+
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+import numpy, scipy.optimize
+
+def fit_sin(tt, yy):
+    '''Fit sin to the input time sequence, and return fitting parameters "amp", "omega", "phase", "offset", "freq", "period" and "fitfunc"'''
+    tt = numpy.array(tt)
+    yy = numpy.array(yy)
+    ff = numpy.fft.fftfreq(len(tt), (tt[1]-tt[0]))   # assume uniform spacing
+    Fyy = abs(numpy.fft.fft(yy))
+    guess_freq = abs(ff[numpy.argmax(Fyy[1:])+1])   # excluding the zero frequency "peak", which is related to offset
+    guess_amp = numpy.std(yy) * 2.**0.5
+    guess_offset = numpy.mean(yy)
+    guess = numpy.array([guess_amp, 2.*numpy.pi*guess_freq, 0., guess_offset])
+
+    def sinfunc(t, A, w, p, c):  return A * numpy.sin(w*t + p) + c
+    popt, pcov = scipy.optimize.curve_fit(sinfunc, tt, yy, p0=guess)
+    A, w, p, c = popt
+    f = w/(2.*numpy.pi)
+    fitfunc = lambda t: A * numpy.sin(w*t + p) + c
+    return {"amp": A, "omega": w, "phase": p, "offset": c, "freq": f, "period": 1./f, "fitfunc": fitfunc, "maxcov": numpy.max(pcov), "rawres": (guess,popt,pcov)}
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plt.plot(delay, fit_sin(np.array(delay), ij)['fitfunc'](np.array(delay)))
+plt.plot(delay, ij)
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/6be689a58720c7479a901c42e6237d9b1e1db5ab.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.arccos(1 / ((2 * np.pi / (fit_sin(np.array(delay), ij)['omega'])) / lambda_calc)) * (180 / np.pi)
+#+END_SRC
+
+#+RESULTS:
+: 10.892186719233774
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+((2 * np.pi / (fit_sin(np.array(delay), ij)['omega'])) / lambda_calc)
+#+END_SRC
+
+#+RESULTS:
+: 1.0183460229247183
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+1 / np.cos(10.8954 * np.pi / 180)
+#+END_SRC
+
+#+RESULTS:
+: 1.0183570144549947
+
+I swear to god if I really just need to fit a sinewave instead I am going to be
+PISSED but also very happy....
+
+Should check this instead now changing to a sine wave fit (with decaying
+envelope maybe) and also changing the amplitude computation...
+
+Then I should also check this redoing the computation but with all the
+frequencies at once to see the color correction I get. And the frequency shift
+too.
+
+ok I am done for the night
+
+Next time I will first try generating some perfect cosine data to see how that
+changes things
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+import scipy.signal
+fftfreq = np.fft.rfftfreq(len(ij), d=(4 * 2 * 20 / 400) / 1.018357) 
+plt.plot(300 * fftfreq, np.abs(np.fft.rfft(ij * scipy.signal.triang(len(ij)))))
+plt.xlim(295, 310)
+plt.axvline((c / lambda_calc), color='black', label='actual frequency')
+plt.xlabel('frequency')
+plt.legend()
+plt.ylabel('power')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/74f7d613a4497af6715314da40836ae2b3c52201.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+1 - (301 / 300.)
+#+END_SRC
+
+#+RESULTS:
+: -0.0033333333333334103
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+1.0183 - 1.0153
+#+END_SRC
+
+#+RESULTS:
+: 0.0029999999999998916
+
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+def cosine(t, freq=3, phi=0):
+    return np.cos(2 * np.pi * freq * t + phi)
+
+times = np.arange(-10, 10 + .05, .2)
+plt.plot(times, cosine(times, freq=2))
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/eeab9e9a0deea48088b9d3d552742170557a5d14.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+fftfreq = np.fft.rfftfreq(len(times), d=times[1] - times[0]) 
+plt.plot(fftfreq, np.abs(np.fft.rfft(cosine(times))))
+plt.grid()
+plt.axvline(2, color='black')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/ef198603fd1e3270a888ba66acbd4722342e07ac.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+1 / (times[1] - times[0])
+#+END_SRC
+
+#+RESULTS:
+: 5.000000000000001
+
+This looks like a sampling phenomenon...
+
+* Trying a larger throw
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+n_linear = 2
+FTS_stage_throw = 40.     # total throw extent in mm
+FTS_stage_step_size = 0.1  # FTS step size in mm
+# n_mirror_positions = (20 * 2 / .1)
+n_mirror_positions = (2 * FTS_stage_throw / FTS_stage_step_size)
+ymax = FTS_stage_throw
+
+with open("lab_fts_dims_act.yml", "r") as stream:
+    config = yaml.safe_load(stream)
+
+possible_paths = rt.get_possible_paths()
+
+# x_vals = np.linspace(-.65, .65, 1)
+# y_vals = np.linspace(-.65, .65, 1)
+# z_vals = np.linspace(0, 0, 1)
+
+x_vals = np.linspace(0, 0, 1)
+y_vals = np.linspace(0, 0, 1)
+z_vals = np.linspace(0, 0, 1)
+
+start_rays = csims.get_final_rays_reversed([0, 0, 0], theta_bound=.00001, 
+                                           n_linear=n_linear)
+transformed_start_rays = notebook_utils.transform_rays_to_fts_frame(start_rays)
+
+delay, final_rays = rt.run_all_rays_through_sim_optimized(
+    transformed_start_rays, config, n_mirror_positions, paths=possible_paths, 
+    ymax=FTS_stage_throw, progressbar=True)
+#+END_SRC
+
+#+RESULTS:
+: 100%|██████████| 800/800 [00:51<00:00, 15.42it/s]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+ray_mat = notebook_utils.rays_to_matrix(final_rays)
+nyquist_freq = notebook_utils.c / ((2 * ymax / n_mirror_positions) * 4 * 2)
+freqs = np.arange(15, nyquist_freq - 10 + 1)
+gaussian_shifts, peak_shifts, gaussian_amplitudes, fft_maxes = notebook_utils.plot_shifts(
+    delay, ray_mat, freqs, ymax, shift=shift)
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+test_rays = ray_mat[:, :8, :]
+lambda_calc = c / 300.
+ij = rt.get_interferogram(test_rays, lambda_calc)
+plt.plot(delay, ij, '.')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/a5e5c93c56df38b285f2bd9575a2313b147802d6.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plt.plot(delay, fit_sin(np.array(delay), ij)['fitfunc'](np.array(delay)))
+plt.plot(delay, ij)
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/6174dcb033e9ff013bbede8659409a6808491731.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.arccos(1 / ((2 * np.pi / (fit_sin(np.array(delay), ij)['omega'])) / lambda_calc)) * (180 / np.pi)
+#+END_SRC
+
+#+RESULTS:
+: 10.882150402641441
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+((2 * np.pi / (fit_sin(np.array(delay), ij)['omega'])) / lambda_calc)
+#+END_SRC
+
+#+RESULTS:
+: 1.0183117142832243
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+fftfreq = np.fft.rfftfreq(len(ij), d=(4 * 2 * 40 / 800) / 1.018357) 
+plt.plot(300 * fftfreq, np.abs(np.fft.rfft(ij * scipy.signal.triang(len(ij)))))
+plt.xlim(295, 305)
+plt.axvline((c / lambda_calc), color='black', label='actual frequency')
+plt.xlabel('frequency')
+plt.legend()
+plt.ylabel('power')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/ffe6bcf03b8739ca6bd89d90ad17822c6b416544.png]]
+
+* Try making a whole frequency spectrum at once
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+c = 300.
+n_linear = 1
+FTS_stage_throw = 20.     # total throw extent in mm
+FTS_stage_step_size = 0.1  # FTS step size in mm
+# n_mirror_positions = (20 * 2 / .1)
+n_mirror_positions = (2 * FTS_stage_throw / FTS_stage_step_size)
+ymax = FTS_stage_throw
+
+with open("lab_fts_dims_act.yml", "r") as stream:
+    config = yaml.safe_load(stream)
+
+possible_paths = rt.get_possible_paths()
+
+start_rays = csims.get_final_rays_reversed([0, 0, 0], theta_bound=1e-15, 
+                                           n_linear=n_linear)
+transformed_start_rays = notebook_utils.transform_rays_to_fts_frame(start_rays)
+
+delay, final_rays = rt.run_all_rays_through_sim_optimized(
+    transformed_start_rays, config, n_mirror_positions, paths=possible_paths, 
+    ymax=FTS_stage_throw, progressbar=True)
+#+END_SRC
+
+#+RESULTS:
+: 100%|██████████| 400/400 [00:07<00:00, 56.14it/s]
+
+# have to change ray to include a frequency, update the power sum computation
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+def rays_to_matrix_frequency(rays, freqs):
+    max_rays_num = max([len(y_rays) for y_rays in rays])
+    # get max number and pad to that these fit nicely into a matrix
+    total_rays = []
+    for y_rays in rays:
+        frequency_rays = []
+        for frequency in freqs:
+            # only keep polarization, intensity, distance
+            # then add frequency
+            power_vals_mask = [0, 1, 4]
+            power_vals = np.array(np.array(y_rays, dtype='object')[
+                :, power_vals_mask], dtype='float64')
+            # add a frequency dimension to this
+            frequency_vals = np.ones((len(power_vals), 1)) * frequency
+            total_power_vals = np.concatenate((power_vals, frequency_vals), axis=1)
+            # pad rows now
+            total_vals = np.zeros((max_rays_num, total_power_vals.shape[1]))
+            total_vals[:power_vals.shape[0]] = total_power_vals
+            frequency_rays.extend(total_vals)
+        total_rays.append(frequency_rays)
+
+    return np.array(total_rays)
+
+def get_interferogram_frequency(outrays, frequencies):
+    for freq in frequencies:
+        theta = outrays[:, :, 0]
+        intensity = outrays[:, :, 1]
+        distance = outrays[:, :, 2]
+        wavelength = c / outrays[:, :, 3]
+
+        phase = np.exp(1j * (distance * 2 * np.pi / wavelength))
+        ex1 = np.sqrt(intensity) * np.cos(theta)
+        ey1 = np.sqrt(intensity) * np.sin(theta)
+
+        ex = ex1 * phase
+        ey = ey1 * phase
+
+        return np.square(np.abs((ex.sum(axis=1)))) + np.square(
+            np.abs((ey.sum(axis=1))))
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+ray_frequency_matrix = rays_to_matrix_frequency(final_rays, np.linspace(280, 300, 10000))
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+ray_frequency_matrix.shape
+#+END_SRC
+
+#+RESULTS:
+: (400, 80000, 4)
+
+# make sure that this returns the same thing if we just have one frequency
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+ij_test = get_interferogram_frequency(ray_frequency_matrix)
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plt.plot(delay, ij_test)
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/407b79d252f322286419bff1641f3280f9a711d6.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+import scipy.signal
+fftfreq = np.fft.rfftfreq(len(ij_test), d=(4 * 2 * 40 / 800) / 1.018357) 
+plt.plot(c * fftfreq, np.abs(np.fft.rfft(ij_test * np.hanning(
+    len(ij_test)))))
+plt.xlim(270, 320)
+#plt.axvline(15, color='black', label='actual frequency')
+plt.xlabel('frequency')
+plt.legend()
+plt.ylabel('power')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+: No handles with labels found to put in legend.
+[[file:./.ob-jupyter/39c343b43cee6f2934444cd9db4b9cdc6d5c0fcd.png]]
+:END:
+
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+c * fit_sin(np.array(delay), ij_test)['freq'] * 1.0183
+#+END_SRC
+
+#+RESULTS:
+: 2.4295446564669025
+
+Wow, it only took insane resolution to actually get this spectrum to look
+decent...  If I had more time I would probably try and speed up this
+computation a ridiculous amount... it looks like the creation of the ray matrix
+is the bottleneck so maybe we can do it in segments
+
+yeah, that makes sense i'd say. seems like there will be a finite gain to it
+though.  For fun let's try limiting the solid angle even more and see what
+happens.
+
+Or make the creation process simply better
+
+Can also test this theory by summing an infinite number of sines at these
+frequencies and see if it makes the sinc function lol
+
+Try changing this so that different frequencies add incoherently
+
+Ok I should change up the FTS Simulations to come from many different point
+sources.
+
+1. Test out the many ray interference to see that we get the sinc function we
+   expect-- do this with a bandpass filter too!
+   
+** Part 1
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+from tqdm import tqdm
+def get_interferogram_frequency(outrays, frequencies, debug=True):
+    theta = outrays[:, :, 0]
+    intensity = outrays[:, :, 1]
+    distance = outrays[:, :, 2]
+    ex1 = np.sqrt(intensity) * np.cos(theta)
+    ey1 = np.sqrt(intensity) * np.sin(theta)
+
+    total_power = np.zeros(outrays.shape[0])
+    for freq in tqdm(frequencies, disable=(not debug)):
+        wavelength = c / freq
+        phase = np.exp(1j * (distance * 2 * np.pi / wavelength))
+        ex = ex1 * phase
+        ey = ey1 * phase
+
+        power = np.square(np.abs((ex.sum(axis=1)))) + np.square(
+            np.abs((ey.sum(axis=1))))
+        total_power += power
+        
+    return total_power
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+freqs = np.arange(120, 180 + .1, .1)
+ray_mat = notebook_utils.rays_to_matrix(final_rays)
+total_ij = get_interferogram_frequency(ray_mat, freqs)
+#+END_SRC
+
+#+RESULTS:
+
+2. Change to point sources and 7mm aperture sizes for the detectors.
+   hmmmmm does this change the frequency shift now?
+
+   #+BEGIN_SRC jupyter-python :session py :kernel python3
+plt.plot(delay, total_ij)
+plt.show()
+   #+END_SRC
+
+   #+RESULTS:
+   [[file:./.ob-jupyter/c67abe3c2a10d45f32313f1c5da7d87a2a66263b.png]]
+   
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+import scipy.signal
+fftfreq = np.fft.rfftfreq(len(total_ij), d=(4 * 2 * 40 / 800) / 1.018357) 
+fft_data = np.abs(np.fft.rfft(total_ij * np.hanning(len(total_ij))))
+plt.plot(c * fftfreq[3:], fft_data[3:])
+plt.xlim(100, 200)
+plt.axvline(120, color='black', label='actual frequency')
+plt.axvline(180, color='black', label='actual frequency')
+plt.xlabel('frequency')
+plt.legend()
+plt.ylabel('power')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/f49cca222010e247f1f29f7c7089f655e51ea727.png]]
+
+
+Ok the only difference between this and Mathematica is that this is discretely
+sampled.
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+fftfreq[3:][np.where(fft_data[3:] >= 250)[0][0]] * c
+#+END_SRC
+
+#+RESULTS:
+: 120.293420625
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+fftfreq[3:][np.where(fft_data[3:] >= 250)[0][-1]] * c
+#+END_SRC
+
+#+RESULTS:
+: 181.39484062499997
+
+** 2. Now see what the interference interferogram/spectrum looks like!
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+c = 300.
+n_linear = 20
+FTS_stage_throw = 20.     # total throw extent in mm
+FTS_stage_step_size = 0.1  # FTS step size in mm
+# n_mirror_positions = (20 * 2 / .1)
+n_mirror_positions = (2 * FTS_stage_throw / FTS_stage_step_size)
+ymax = FTS_stage_throw
+
+with open("lab_fts_dims_act.yml", "r") as stream:
+    config = yaml.safe_load(stream)
+
+possible_paths = rt.get_possible_paths()
+
+start_rays = csims.get_final_rays_reversed([0, 0, 0], theta_bound=.25, 
+                                           n_linear=n_linear)
+transformed_start_rays = notebook_utils.transform_rays_to_fts_frame(start_rays)
+
+delay, final_rays = rt.run_all_rays_through_sim_optimized(
+    transformed_start_rays, config, n_mirror_positions, paths=possible_paths, 
+    ymax=FTS_stage_throw, progressbar=True)
+#+END_SRC
+
+#+RESULTS:
+: /Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+: 
+: invalid value encountered in sqrt
+: 
+: 100%|██████████| 400/400 [33:17<00:00,  4.99s/it]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+freqs = np.arange(120, 180 + .1, .1)
+ray_mat = notebook_utils.rays_to_matrix(final_rays)
+total_ij = get_interferogram_frequency(ray_mat, freqs)
+#+END_SRC
+
+#+RESULTS:
+: 100%|██████████| 601/601 [00:57<00:00, 10.42it/s]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plt.plot(delay, total_ij)
+plt.show()
+
+fftfreq = np.fft.rfftfreq(len(total_ij), d=(4 * 2 * 40 / 800) / 1.018357) 
+fft_data = np.abs(np.fft.rfft(total_ij * np.hanning(len(total_ij))))
+plt.plot(c * fftfreq[3:], fft_data[3:])
+plt.xlim(100, 200)
+plt.axvline(120, color='black', label='actual frequency')
+plt.axvline(180, color='black', label='actual frequency')
+plt.xlabel('frequency')
+plt.legend()
+plt.ylabel('power')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+[[file:./.ob-jupyter/45aceb2e3108fec9759bbad72db12b785d18ce57.png]]
+# [goto error]
+: 
+: NameErrorTraceback (most recent call last)
+: <ipython-input-6-83803e944077> in <module>
+:       3 
+:       4 fftfreq = np.fft.rfftfreq(len(total_ij), d=(4 * 2 * 40 / 800) / 1.018357)
+: ----> 5 fft_data = np.abs(np.fft.rfft(total_ij * scipy.signal.triang(len(total_ij))))
+:       6 plt.plot(c * fftfreq[3:], fft_data[3:])
+:       7 plt.xlim(100, 200)
+: 
+: NameError: name 'scipy' is not defined
+:END:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+freqs = np.arange(20, 300 + .1, .1)
+ray_mat = notebook_utils.rays_to_matrix(final_rays)
+total_ij = get_interferogram_frequency(ray_mat, freqs, debug=True)
+#+END_SRC
+
+#+RESULTS:
+: 100%|██████████| 2801/2801 [48:51<00:00,  1.05s/it]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plt.plot(delay, total_ij)
+plt.show()
+
+fftfreq = np.fft.rfftfreq(len(total_ij), d=(4 * 2 * 40 / 800) / 1.018357) 
+fft_data = np.abs(np.fft.rfft(total_ij * np.hanning(len(total_ij))))
+fft_data /= fft_data[13]
+plt.plot(c * fftfreq[3:], fft_data[3:])
+plt.ylim(0, 1.1)
+plt.axvline(15, linestyle='--', color='black', alpha=.6)
+plt.axvline(300, linestyle='--', color='black', alpha=.6)
+#plt.xlim(298, 305)
+plt.xlabel('frequency')
+plt.legend()
+plt.ylabel('power')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+[[file:./.ob-jupyter/cd4a050ef6ec9e9c9ebb621532f42996b23bb822.png]]
+: No handles with labels found to put in legend.
+[[file:./.ob-jupyter/78b5442bb3139b05384040cb2fc264ee03977d58.png]]
+:END:
+
+Now see what a wonky one looks like-- actually I can just get data from this myself
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+data, shifts = load_data('data/total_attrs_xz_2_1_25_30_57.p')
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+get_shift_index(data, [np.max(shifts[:, 0]), 0, np.max(shifts[:, 2])])
+#+END_SRC
+
+#+RESULTS:
+: 5
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+get_shift_index(data, [np.max(shifts[:, 0]), 0, np.min(shifts[:, 2])])
+#+END_SRC
+
+#+RESULTS:
+: 0
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+shifts[0]
+#+END_SRC
+
+#+RESULTS:
+: array([ 0.49212598,  0.        , -1.96850394])
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+ray_mat = data[5][-1]
+delay = data[5][1]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+total_ij_defocus = get_interferogram_frequency(ray_mat, freqs, debug=True)
+#+END_SRC
+
+#+RESULTS:
+: 100%|██████████| 2801/2801 [02:14<00:00, 20.76it/s]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plt.plot(delay, total_ij_defocus)
+plt.show()
+
+fftfreq = np.fft.rfftfreq(len(total_ij_defocus), d=(4 * 2 * 40 / 800) / 1.018357) 
+fft_data = np.abs(np.fft.rfft(total_ij_defocus * np.hanning(len(total_ij))))
+fft_data /= fft_data[13]
+plt.plot(c * fftfreq[3:], fft_data[3:])
+plt.ylim(1e-2, 1.1)
+plt.axvline(15, linestyle='--', color='black', alpha=.6)
+plt.axvline(300, linestyle='--', color='black', alpha=.6)
+#plt.xlim(298, 305)
+plt.xlabel('frequency')
+plt.yscale('log')
+plt.legend()
+plt.ylabel('power')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+[[file:./.ob-jupyter/58d8641e0ea626195d848b3569f059cfdf3a8945.png]]
+: No handles with labels found to put in legend.
+[[file:./.ob-jupyter/fcfd41c6c9d9be2116030618b74aebbfd7a7ff7e.png]]
+:END:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+freqs = np.arange(120, 180 + .1, .1)
+total_ij_defocus_band = get_interferogram_frequency(ray_mat, freqs)
+#+END_SRC
+
+#+RESULTS:
+: 100%|██████████| 601/601 [00:30<00:00, 19.50it/s]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plt.plot(delay, total_ij_defocus_band)
+plt.show()
+
+fftfreq = np.fft.rfftfreq(len(total_ij_defocus_band), d=(4 * 2 * 40 / 800) / 1.018357) 
+fft_data = np.abs(np.fft.rfft(total_ij_defocus_band * np.hanning(
+    len(total_ij_defocus_band))))
+fft_data /= fft_data[120]
+plt.plot(c * fftfreq[3:], fft_data[3:])
+plt.xlim(110, 190)
+#plt.ylim(1e-2, 1.1)
+plt.axvline(15, linestyle='--', color='black', alpha=.6)
+plt.axvline(300, linestyle='--', color='black', alpha=.6)
+#plt.xlim(298, 305)
+plt.xlabel('frequency')
+#plt.yscale('log')
+plt.legend()
+plt.ylabel('power')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+[[file:./.ob-jupyter/338b5604da07e1cd62e6c3c22abbf057926e92bf.png]]
+: No handles with labels found to put in legend.
+[[file:./.ob-jupyter/b8b8b9a9162a498dcd874a4902b651749a01c974.png]]
+:END:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+ray_mat_other = data[0][-1]
+delay_other = data[0][1]
+
+,#+BEGIN_SRC jupyter-python :session py :kernel python3
+total_ij_defocus_other = get_interferogram_frequency(
+    ray_mat_other, freqs, debug=True)
+#+END_SRC
+
+#+RESULTS:
+: 100%|██████████| 601/601 [00:28<00:00, 20.95it/s]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plt.plot(delay_other, total_ij_defocus_other)
+plt.show()
+
+fftfreq = np.fft.rfftfreq(len(total_ij_defocus_other), d=(4 * 2 * 40 / 800) / 1.018357) 
+fft_data = np.abs(np.fft.rfft(total_ij_defocus_other * np.hanning(
+    len(total_ij_defocus_other))))
+fft_data /= fft_data[120]
+plt.plot(c * fftfreq[3:], fft_data[3:])
+plt.xlim(110, 190)
+#plt.ylim(1e-2, 1.1)
+plt.axvline(15, linestyle='--', color='black', alpha=.6)
+plt.axvline(300, linestyle='--', color='black', alpha=.6)
+#plt.xlim(298, 305)
+plt.xlabel('frequency')
+#plt.yscale('log')
+plt.legend()
+plt.ylabel('power')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+i[[file:./.ob-jupyter/0bec919bdbb471b17fab155720cfe150a9645b25.png]]i
+: No handles with labels found to put in legend.
+[[file:./.ob-jupyter/7675bfc808c80a4f718225297775b2c4ed892409.png]]
+:END:
+* Changing to a forward raytrace and summing interferograms
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+with open("lab_fts_dims_act.yml", "r") as stream:
+    config = yaml.safe_load(stream)
+
+starting_rays = create_source_rays_uniform(
+    config['detector']['center'], 50., config['detector']['normal_vec'], 
+    2, 30, 1, config, theta_bound=.5, check_rays=True)
+
+# starting_rays = create_source_rays(
+#     config['detector']['center'], 0.0, config['detector']['normal_vec'], 
+#     50, config, theta_bound=.07, check_rays=True)
+
+# theta bound at the start is around 
+
+with open("lab_fts_dims_act_backwards.yml", "r") as stream:
+    config = yaml.safe_load(stream)
+
+#possible_paths = [['OM2', 'A1', 'OM1'] + path[::-1] for path in get_possible_paths()]
+possible_paths = [path[::-1] for path in get_possible_paths()]
+# only do the 1st and 5th of these paths
+possible_paths = [possible_paths[1], possible_paths[5]]
+final_rays = run_rays_through_sim(
+    starting_rays, config, np.array(config['origins']['mirror']), 
+    paths=possible_paths)
+
+transformed_rays = transform_rays_to_coupling_optics_frame(final_rays)
+
+fig = go.Figure()
+
+# plot the initial ray steps
+all_points = []
+all_vectors = []
+all_distances = []
+for path in possible_paths:
+    total_ray_points, total_vectors, total_distances = step_rays(
+        starting_rays, config, run_ray_through_sim, config, [0, 0, 0], 
+        path, final_dist=238, debug=False)
+
+    all_points.append(total_ray_points)
+    all_vectors.append(total_vectors)
+    all_distances.append(total_distances)
+
+plot_all_items(config, all_points, all_vectors, all_distances, [0, 0, 0], fig=fig)
+
+out_forwards = csims.run_rays_forwards_input_rays(transformed_rays, z_ap=csims.FOCUS[2], plot=True,
+                                                  fig=fig, color='red')
+fig.show()
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+out_forwards.shape
+#+END_SRC
+
+#+RESULTS:
+: (11, 0)
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+with open("lab_fts_dims_act.yml", "r") as stream:
+    config = yaml.safe_load(stream)
+
+starting_rays = create_source_rays(config['detector']['center'], 0.0, 
+                                   config['detector']['normal_vec'], 30, config, 
+                                   theta_bound=np.pi / 2)
+
+with open("lab_fts_dims_mcmahon_backwards.yml", "r") as stream:
+    config = yaml.safe_load(stream)
+
+#possible_paths = [['OM2', 'A1', 'OM1'] + path[::-1] for path in get_possible_paths()]
+possible_paths = [path[::-1] for path in get_possible_paths()]
+# only do the 1st and 5th of these paths
+possible_paths = [possible_paths[1]]
+final_rays = run_rays_through_sim(
+    starting_rays, config, np.array(config['origins']['mirror']), 
+    paths=possible_paths)
+
+transformed_rays = transform_rays_to_coupling_optics_frame(final_rays)
+
+fig = go.Figure()
+
+# plot the initial ray steps
+all_points = []
+all_vectors = []
+all_distances = []
+for path in possible_paths:
+    total_ray_points, total_vectors, total_distances = step_rays(
+        starting_rays, config, run_ray_through_sim, config, [0, 0, 0], 
+        path, final_dist=238, debug=False)
+
+    all_points.append(total_ray_points)
+    all_vectors.append(total_vectors)
+    all_distances.append(total_distances)
+
+plot_all_items(config, all_points, all_vectors, all_distances, [0, 0, 0], fig=fig)
+
+out_forwards = csims.run_rays_forwards_input_rays(transformed_rays, z_ap=csims.FOCUS[2], plot=True,
+                                                  fig=fig, color='red')
+fig.show()
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+out_forwards
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+array([[ 3.85653127e-02, -1.76047172e-02,  3.94511150e-02,
+         2.85262479e-02, -3.15737771e-02, -2.78735100e-03,
+        -4.88214401e-02,  5.19007647e-02, -1.31530940e-01,
+        -2.69684131e-02,  8.87369383e-03,  3.45796773e-02,
+         7.83155236e-02, -6.84848891e-03,  1.84234419e-02,
+         8.72835361e-03, -2.11054718e-02, -2.21982065e-02,
+         5.58609096e-03,  2.71812281e-03],
+       [ 1.33605931e+01,  1.33468574e+01,  1.33320762e+01,
+         1.33454194e+01,  1.34506391e+01,  1.31843108e+01,
+         1.33733629e+01,  1.31984954e+01,  1.34222065e+01,
+         1.33135273e+01,  1.33435786e+01,  1.33623004e+01,
+         1.33638634e+01,  1.33649814e+01,  1.34348616e+01,
+         1.33998101e+01,  1.34259597e+01,  1.33079171e+01,
+         1.33016662e+01,  1.34288279e+01],
+       [-2.09000000e+01, -2.09000000e+01, -2.09000000e+01,
+        -2.09000000e+01, -2.09000000e+01, -2.09000000e+01,
+        -2.09000000e+01, -2.09000000e+01, -2.09000000e+01,
+        -2.09000000e+01, -2.09000000e+01, -2.09000000e+01,
+        -2.09000000e+01, -2.09000000e+01, -2.09000000e+01,
+        -2.09000000e+01, -2.09000000e+01, -2.09000000e+01,
+        -2.09000000e+01, -2.09000000e+01],
+       [ 3.45101515e+03,  3.45094213e+03,  3.45101262e+03,
+         3.45097166e+03,  3.45131408e+03,  3.45157507e+03,
+         3.45107052e+03,  3.45154539e+03,  3.45153679e+03,
+         3.45101091e+03,  3.45092260e+03,  3.45100533e+03,
+         3.45117030e+03,  3.45095299e+03,  3.45122445e+03,
+         3.45106852e+03,  3.45118729e+03,  3.45101672e+03,
+         3.45101791e+03,  3.45118836e+03],
+       [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+         0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+         0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+         0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+         0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+         0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+         0.00000000e+00,  0.00000000e+00],
+       [-1.07365879e-01,  8.31824088e-02, -1.11058471e-01,
+        -1.01082811e-01,  4.68872010e-02,  3.25882409e-03,
+         1.11889833e-01, -6.20323260e-02,  1.58248165e-01,
+         7.65033378e-02, -6.27008756e-02, -1.00669361e-01,
+        -1.43219709e-01,  2.84821982e-02, -3.08185461e-02,
+        -2.01207663e-02,  3.74650522e-02,  6.13842395e-02,
+        -1.53684723e-02, -4.81632046e-03],
+       [-4.60246865e-02, -1.32285958e-02,  3.37171257e-02,
+        -4.82669774e-03, -1.58233622e-01,  1.86714488e-01,
+        -6.71464513e-02,  1.73927768e-01, -9.40009199e-02,
+         8.65814226e-02,  3.38028455e-03, -5.30968929e-02,
+        -3.62126399e-02, -8.69988306e-02, -1.51856898e-01,
+        -1.28488717e-01, -1.45349789e-01,  9.99088711e-02,
+         1.16593141e-01, -1.50168241e-01],
+       [-9.93153712e-01, -9.96446532e-01, -9.93241749e-01,
+        -9.94866307e-01, -9.86287844e-01, -9.82408815e-01,
+        -9.91449454e-01, -9.82802687e-01, -9.82914719e-01,
+        -9.93303024e-01, -9.98026640e-01, -9.93502088e-01,
+        -9.89028189e-01, -9.95801169e-01, -9.87921910e-01,
+        -9.91506835e-01, -9.88670728e-01, -9.93101300e-01,
+        -9.93060849e-01, -9.88648726e-01],
+       [ 1.25767626e-01, -9.64061860e-02,  1.30058153e-01,
+         1.17771391e-01, -5.59479175e-02, -3.92181536e-03,
+        -1.31729022e-01,  7.45920428e-02, -1.90241573e-01,
+        -8.95749289e-02,  7.22652358e-02,  1.17797408e-01,
+         1.69735301e-01, -3.30825318e-02,  3.66282412e-02,
+         2.36846178e-02, -4.44429331e-02, -7.19169446e-02,
+         1.80077472e-02,  5.71369004e-03],
+       [ 5.39127748e-02,  1.53310108e-02, -3.94864046e-02,
+         5.62294942e-03,  1.88813630e-01, -2.24705679e-01,
+         7.90523132e-02, -2.09147716e-01,  1.13006549e-01,
+        -1.01376514e-01, -3.89657409e-03,  6.21307206e-02,
+         4.29168362e-02,  1.01050470e-01,  1.80485662e-01,
+         1.51247905e-01,  1.72422791e-01, -1.17053568e-01,
+        -1.36617898e-01,  1.78148987e-01],
+       [-9.90593719e-01, -9.95223999e-01, -9.90719789e-01,
+        -9.93024814e-01, -9.80417892e-01, -9.74418789e-01,
+        -9.88128634e-01, -9.75035005e-01, -9.75211599e-01,
+        -9.90807315e-01, -9.97377838e-01, -9.91092097e-01,
+        -9.84554759e-01, -9.94331106e-01, -9.82895365e-01,
+        -9.88212077e-01, -9.84019922e-01, -9.90518256e-01,
+        -9.90460131e-01, -9.83986937e-01]])
+#+end_example
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.mean(out_forwards[3]), np.std(out_forwards[3])
+#+END_SRC
+
+#+RESULTS:
+: (3451.1374396159617, 0.20127724916763187)
+
+Also should move the source closer I bet.
+
+Create a new function distributing the rays uniformly in theta, phi
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+def create_source_rays_uniform_new(
+        source_origin, source_range, source_normal_vec, n_linear_x, n_linear_y,
+        n_linear_theta, n_linear_phi, config, check_rays=True, theta_bound=.2, 
+        timeout=10):
+    # first create rays distributed in the upwards cone
+    # and then rotate them to center them around the normal
+    # also create them around a variety of starting points
+    # assume radially symmetric source
+    rotation_matrix = get_rotation_matrix(source_normal_vec, [0, 0, 1])
+    rays = []
+    
+    # now we really have n^4 computations... for n^2 for the circle, n^2 for the angle
+    # really we should just create like 20 points distributed uniformly on the circle
+    # and then for each of those get like 5 * 5 vectors worth
+    # for 20 * 25 total points
+    
+    starting_time = time.time()
+    for x in np.linspace(-1 * source_range, source_range, n_linear_x):
+        for y in np.linspace(-1 * source_range, source_range, n_linear_y):
+            for theta_val in np.linspace(0, theta_bound, n_linear_theta):
+                for phi_val in np.linspace(0, 2 * np.pi, n_linear_phi):
+                    if time.time() - starting_time > timeout:
+                        print('timing out..')
+                        return rays
+
+                    point_origin = [x, y, 0]
+                    
+                    # Direction of ray away from the starting point
+                    r_hat = [np.sin(theta_val) * np.cos(phi_val), 
+                             np.sin(theta_val) * np.sin(phi_val), np.cos(theta_val)]
+
+                    transformed_starting_vector = -1 * np.array(transform_points(
+                        [r_hat[0]], [r_hat[1]], [r_hat[2]], [0, 0, 0], rotation_matrix)).flatten()
+
+                    transformed_starting_point = np.array(transform_points([point_origin[0]], [point_origin[1]], [point_origin[2]], 
+                                                                           source_origin, rotation_matrix)).flatten()
+
+                    # strategically choose our starting rays such that they make it through the
+                    # to the first ellipse that we hit
+                    polarization_angle = .123
+                    intensity = 1.0
+                    ray = [polarization_angle, intensity, transformed_starting_point.tolist(), 
+                        transformed_starting_vector.tolist(), 0]
+                    # paths = ['OM2', 'A1', 'OM1', 'T4', 'E6']
+                    if (check_rays):
+                        paths = ['T4', 'E6']
+                        final_ray = run_ray_through_sim(ray, config, None, paths)
+                        if (final_ray is not None):
+                            rays.append(ray)
+                    else:
+                        rays.append(ray)
+        
+    return rays
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+with open("lab_fts_dims_act.yml", "r") as stream:
+    config = yaml.safe_load(stream)
+    
+starting_rays = create_source_rays_uniform_new(
+    config['detector']['center'], 10., config['detector']['normal_vec'], 
+    3, 3, 100, 100, config, theta_bound=np.pi / 2, check_rays=True, timeout=100)
+
+with open("lab_fts_dims_mcmahon_backwards.yml", "r") as stream:
+    config = yaml.safe_load(stream)
+
+#possible_paths = [['OM2', 'A1', 'OM1'] + path[::-1] for path in get_possible_paths()]
+possible_paths = [path[::-1] for path in get_possible_paths()]
+# only do the 1st and 5th of these paths
+possible_paths = [possible_paths[1]]
+final_rays = run_rays_through_sim(
+    starting_rays, config, np.array(config['origins']['mirror']), 
+    paths=possible_paths)
+
+transformed_rays = transform_rays_to_coupling_optics_frame(final_rays)
+
+# fig = go.Figure()
+
+# #plot the initial ray steps
+# all_points = []
+# all_vectors = []
+# all_distances = []
+# for path in possible_paths:
+#     total_ray_points, total_vectors, total_distances = step_rays(
+#         starting_rays, config, run_ray_through_sim, config, [0, 0, 0], 
+#         path, final_dist=238, debug=False)
+
+#     all_points.append(total_ray_points)
+#     all_vectors.append(total_vectors)
+#     all_distances.append(total_distances)
+
+# plot_all_items(config, all_points, all_vectors, all_distances, [0, 0, 0], fig=fig)
+
+out_forwards = csims.run_rays_forwards_input_rays(transformed_rays, z_ap=csims.FOCUS[2], plot=False,
+                                                  fig=fig, color='red')
+#fig.show()
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+out_forwards.shape
+#+END_SRC
+
+#+RESULTS:
+: (11, 4403)
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+len(starting_rays)
+#+END_SRC
+
+#+RESULTS:
+: 4422
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.std(out_forwards[3])
+#+END_SRC
+
+#+RESULTS:
+: 0.21252543238725796
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+for z in np.linspace(csims.FOCUS[2] + 10, csims.FOCUS[2] - 10, 11):
+    out_removed = get_rays_at_z(out_forwards, z)
+    #points = remove_outliers(get_rays_at_z(out, z), threshold=5)
+    points = out_removed[[0, 1, 2]]
+    plt.figure(figsize=(5, 5))
+    sns.kdeplot(x=points[0], y=points[1] - csims.FOCUS[1], fill=True, cbar=True, 
+                cmap='viridis', thresh=0.01, levels=20, norm=mpl.colors.LogNorm())
+    #sns.histplot(x=points[0], y=points[1] - csims.FOCUS[1], cbar=True)
+    plt.scatter(0, 0, s=1, color='black')
+    plt.axis('equal')
+    # plt.xlim(-4, 4)
+    # plt.ylim(-4, 4)
+    plt.title('z = %.1f' %(z - csims.FOCUS[2]))
+    plt.show()
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+[[file:./.ob-jupyter/f6f5c7c89b4ab48a629ca75ca6f6676a5d639db4.png]]
+[[file:./.ob-jupyter/2d45dae5fefbe5c188a58ecc60d4183b95ea822c.png]]
+[[file:./.ob-jupyter/e64dcf7cd7ac883bd07ef3b574336ec92c5f5d4e.png]]
+[[file:./.ob-jupyter/19bbb448c2e276fccb01c1a380466c0923bce065.png]]
+[[file:./.ob-jupyter/2cb5c0e6071d4b423f83a13e720cade3baeb7679.png]]
+[[file:./.ob-jupyter/381fc01cc2ee0ccdf3137434f6a50b9dc52f9907.png]]
+[[file:./.ob-jupyter/41995e5f7311640a712da123a0659742a05053ce.png]]
+[[file:./.ob-jupyter/ed22303ff9514fb65733c5b11b5d76e0fd51276d.png]]
+[[file:./.ob-jupyter/99b61c1079ef67b6c8f76627ad8e9557479fde7c.png]]
+[[file:./.ob-jupyter/7c40681875ead9936c2f4781a7563515e316f068.png]]
+[[file:./.ob-jupyter/99c632f56d730890194f3b5ba1e8f2d0951172fa.png]]
+:END:
+
+Wow this is really great now.
+
+Now make a function which takes an input position at some radius away from our
+source center,
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+def create_source_rays_uniform_from_start_displacement(
+        source_origin, source_normal_vec, horiz_displacement, 
+        vert_displacement, n_linear_theta, n_linear_phi, config, 
+        check_rays=True, theta_bound=np.pi / 2, timeout=10):
+    # first create rays distributed in the upwards cone
+    # and then rotate them to center them around the normal
+    # also create them around a variety of starting points
+    # assume radially symmetric source
+    rotation_matrix = get_rotation_matrix(source_normal_vec, [0, 0, 1])
+    rays = []
+    
+    # n^2 computations here
+    starting_time = time.time()
+    for theta_val in np.linspace(0, theta_bound, n_linear_theta):
+        for phi_val in np.linspace(0, 2 * np.pi, n_linear_phi):
+            if time.time() - starting_time > timeout:
+                print('timing out..')
+                return rays
+
+            point_origin = [horiz_displacement, vert_displacement, 0]
+
+            # Direction of ray away from the starting point
+            r_hat = [np.sin(theta_val) * np.cos(phi_val), 
+                     np.sin(theta_val) * np.sin(phi_val), np.cos(theta_val)]
+
+            transformed_starting_vector = -1 * np.array(transform_points(
+                [r_hat[0]], [r_hat[1]], [r_hat[2]], [0, 0, 0], rotation_matrix)).flatten()
+
+            transformed_starting_point = np.array(transform_points(
+                [point_origin[0]], [point_origin[1]], [point_origin[2]], 
+                source_origin, rotation_matrix)).flatten()
+
+            # strategically choose our starting rays such that they make it through the
+            # to the first ellipse that we hit
+            polarization_angle = .123
+            intensity = 1.0
+            ray = [polarization_angle, intensity, transformed_starting_point.tolist(), 
+                transformed_starting_vector.tolist(), 0]
+            # paths = ['OM2', 'A1', 'OM1', 'T4', 'E6']
+            if (check_rays):
+                paths = ['T4', 'E6']
+                final_ray = run_ray_through_sim(ray, config, None, paths)
+                if (final_ray is not None):
+                    rays.append(ray)
+            else:
+                rays.append(ray)
+        
+    return rays
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+data = []
+for x_disp in tqdm(np.linspace(-50, 50, 5)):
+    for y_disp in np.linspace(-50, 50, 5):
+        with open("lab_fts_dims_act.yml", "r") as stream:
+            config = yaml.safe_load(stream)
+
+        starting_rays = create_source_rays_uniform_from_start_displacement(
+            config['detector']['center'], config['detector']['normal_vec'], x_disp, 
+            y_disp, 100, 100, config, theta_bound=np.pi / 2, check_rays=True, 
+            timeout=100)
+
+        with open("lab_fts_dims_mcmahon_backwards.yml", "r") as stream:
+            config = yaml.safe_load(stream)
+
+        possible_paths = [path[::-1] for path in get_possible_paths()]
+        # only do the 1st and 5th of these paths
+        possible_paths = [possible_paths[1]]
+        final_rays = run_rays_through_sim(
+            starting_rays, config, np.array(config['origins']['mirror']), 
+            paths=possible_paths)
+
+        data.append([x_disp, y_disp, len(final_rays)])
+#+END_SRC
+
+#+RESULTS:
+: 100%|██████████| 5/5 [00:53<00:00, 10.66s/it]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+data = np.array(data)
+plt.scatter(data[:, 0], data[:, 1], c=data[:, 2] / np.max(data[:, 2]))
+plt.colorbar()
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/de74eb07ea4cbf6643a0b9185438c0e597d0820d.png]]
+
+
+Now we just have to make code which adds up all these interferograms!
+and eventually we should check that they work out!
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+in_to_mm = 25.4
+det_size = 5 # in mm
+def segment_detector(outrays, n_linear_det=5):
+    points = outrays[[0, 1, 2]] * in_to_mm
+    # get the max and min x and y dimensions
+    # max_x_dim = np.max(np.abs(points[0]))
+    # max_y_dim = np.max(np.abs(points[1] - csims.FOCUS[1] * in_to_mm))
+    # max_dim = np.max([max_x_dim, max_y_dim])
+    # max_loc = max_dim // det_size
+    
+    # divide these into segments of length 5mm
+    #centers = np.arange(-1 * max_loc, max_loc + .1, 1) * det_size
+    centers = np.linspace(-(n_linear_det // 2), (n_linear_det // 2), 
+                          n_linear_det) * det_size
+    out_data = []
+    point_data = []
+    for x_center in centers:
+        for y_center in centers:
+            center = (x_center, y_center + csims.FOCUS[1] * in_to_mm)
+            # get all the rays that go into this detector
+            distance_from_x = np.square(points[0] - center[0])
+            distance_from_y = np.square(points[1] - center[1])
+            dist_from_center = np.sqrt(distance_from_x + distance_from_y)
+            segment_within = np.where(dist_from_center < (det_size / 2))[0]
+            #points_within = points[:, segment_within]
+            out_within = outrays[:, segment_within]
+            #print(out_within.shape)
+            out_data.append(out_within)
+            point_data.append([x_center, y_center])
+    return out_data, np.array(point_data)
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+p = np.array(p)
+plt.scatter(p[:, 0], p[:, 1], c=p[:, 2])
+plt.colorbar()
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/62f371cae605bfeff90b96f558d983ab79d6eb91.png]]
+
+I think we have everything we need now! Just multiply the rays by a factor of
+9 or 10 so that we segment the detectors with enough rays.
+
+Additionally I think we should just do a 5x5 detector grid around the center
+and see what we come up with
+
+Try doing this for a different input position to see what we get
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+def total_forward_raytrace(x_disp, y_disp, n_linear_theta=100, n_linear_phi=100, 
+                           mirror_position=0):
+    with open("lab_fts_dims_act.yml", "r") as stream:
+        config = yaml.safe_load(stream)
+
+    starting_rays = create_source_rays_uniform_from_start_displacement(
+        config['detector']['center'], config['detector']['normal_vec'], x_disp, 
+        y_disp, n_linear_theta, n_linear_phi, config, theta_bound=np.pi / 2, 
+        check_rays=True, timeout=100)
+
+    with open("lab_fts_dims_mcmahon_backwards.yml", "r") as stream:
+        config = yaml.safe_load(stream)
+
+    #possible_paths = [['OM2', 'A1', 'OM1'] + path[::-1] for path in get_possible_paths()]
+    possible_paths = [path[::-1] for path in get_possible_paths()]
+    # only do the 1st and 5th of these paths
+    #possible_paths = [possible_paths[1], possible_paths[5]]
+    final_rays = run_rays_through_sim(
+        starting_rays, config, np.add(np.array(config['origins']['mirror']), 
+            [0, mirror_position, 0]), paths=possible_paths)
+
+    transformed_rays = transform_rays_to_coupling_optics_frame(final_rays)
+    out_forwards = csims.run_rays_forwards_input_rays(
+        transformed_rays, z_ap=csims.FOCUS[2], plot=False, fig=fig, color='red')
+    return out_forwards
+
+
+def plot_out(out, z=csims.FOCUS[2], threshold=5):
+    out_z = remove_outliers(get_rays_at_z(out, z), threshold=threshold)
+    points = out_z[[0, 1, 2]]
+    plt.figure(figsize=(5, 5))
+    sns.kdeplot(x=points[0], y=points[1] - csims.FOCUS[1], fill=True, cbar=True, 
+                cmap='viridis', thresh=0.01, levels=20, norm=mpl.colors.LogNorm())
+    #sns.histplot(x=points[0], y=points[1] - csims.FOCUS[1], cbar=True)
+    plt.scatter(0, 0, s=1, color='black')
+    plt.axis('equal')
+    # plt.xlim(-4, 4)
+    # plt.ylim(-4, 4)
+    plt.title('z = %.1f' %(z - csims.FOCUS[2]))
+    plt.show()
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+test_out = total_forward_raytrace(40, 0, mirror_position=-20, 
+                                  n_linear_theta=100, n_linear_phi=100)
+test_out.shape
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+: /Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+: 
+: invalid value encountered in sqrt
+: 
+: /Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+: 
+: invalid value encountered in sqrt
+: 
+: (9, 1524)
+:END:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plot_out(test_out, z=csims.FOCUS[2])
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/3011f02979927231cfa13d31f8a09df73fbce01d.png]]
+
+
+#+begin_src jupyter-python :session py :kernel python3
+out_data, point_data = segment_detector(test_out, n_linear_det=7) 
+point_data = np.array(point_data)
+nums = [o.shape[1] for o in out_data]
+plt.scatter(point_data[:, 0], point_data[:, 1], c=nums)
+plt.colorbar()
+plt.show()
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/4444d575b8a6fa261ab977a575b9b0317db3c5cf.png]]
+
+
+** Doing this proper procedure for 1 input
+- try to get 300 or so rays per detector at least-- get 5000 or so input rays
+  per start position
+- then segment these rays and sum each individual interferogram- we do 25 of these
+- then we do this for 25 or so input positions and add individual
+  interferograms to each other
+  - although each position should only give around 9 interferograms worth of data!
+- so the total number of computations is 25 * 9ish * (normal interferogram time)
+  
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+
+def trace_rays(start_displacement, n_mirror_positions, ymax, n_linear_theta=100, 
+               n_linear_phi=100, n_lineardet=5, debug=False):
+    with open("lab_fts_dims_act.yml", "r") as stream:
+        config = yaml.safe_load(stream)
+
+    starting_rays = create_source_rays_uniform_from_start_displacement(
+        config['detector']['center'], config['detector']['normal_vec'], 
+        start_displacement[0], start_displacement[1], n_linear_theta, 
+        n_linear_phi, config, theta_bound=np.pi / 2, check_rays=True, timeout=100)
+
+    with open("lab_fts_dims_mcmahon_backwards.yml", "r") as stream:
+        config = yaml.safe_load(stream)
+
+    possible_paths = [path[::-1] for path in get_possible_paths()]
+    delay, final_rays = run_all_rays_through_sim_optimized(
+        starting_rays, config, n_mirror_positions, paths=possible_paths, 
+        ymax=ymax, progressbar=(debug))
+    
+    total_outrays = []
+
+    for rays in tqdm(final_rays, disable=(not debug)):
+        transformed_rays = transform_rays_to_coupling_optics_frame(rays)
+        out_forwards = csims.run_rays_forwards_input_rays(
+            transformed_rays, z_ap=csims.FOCUS[2], plot=False, fig=fig, color='red')
+        total_outrays.append(out_forwards)
+        
+    # now segment the rays
+        
+    return total_outrays
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+out = trace_rays((0, 0), 400, 20, debug=True, 
+                   n_linear_theta=50, n_linear_phi=50) 
+#+END_SRC
+
+#+RESULTS:
+: 100%|██████████| 400/400 [02:04<00:00,  3.22it/s]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+out[0].shape
+#+END_SRC
+
+#+RESULTS:
+: (9, 160)
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+out[0][8]
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+array([3411.70372193, 3411.70372193, 3411.70372193, 3490.25969496,
+       3490.25969496, 3490.25969496, 3411.70372193, 3490.25969496,
+       3411.70372193, 3411.70372193, 3411.70372193, 3490.25969496,
+       3490.25969496, 3490.25969496, 3411.70372193, 3490.25969496,
+       3411.70372193, 3411.70372193, 3411.70372193, 3490.25969496,
+       3490.25969496, 3490.25969496, 3411.70372193, 3490.25969496,
+       3411.70372193, 3411.70372193, 3411.70372193, 3490.25969496,
+       3490.25969496, 3490.25969496, 3411.70372193, 3490.25969496,
+       3411.70372193, 3411.70372193, 3411.70372193, 3490.25969496,
+       3490.25969496, 3490.25969496, 3411.70372193, 3490.25969496,
+       3411.70372193, 3411.70372193, 3411.70372193, 3490.25969496,
+       3490.25969496, 3490.25969496, 3411.70372193, 3490.25969496,
+       3411.70372193, 3411.70372193, 3411.70372193, 3490.25969496,
+       3490.25969496, 3490.25969496, 3411.70372193, 3490.25969496,
+       3411.70372193, 3411.70372193, 3411.70372193, 3490.25969496,
+       3490.25969496, 3490.25969496, 3411.70372193, 3490.25969496,
+       3411.70372193, 3411.70372193, 3411.70372193, 3490.25969496,
+       3490.25969496, 3490.25969496, 3411.70372193, 3490.25969496,
+       3411.70372193, 3411.70372193, 3411.70372193, 3490.25969496,
+       3490.25969496, 3490.25969496, 3411.70372193, 3490.25969496,
+       3411.70372193, 3411.70372193, 3411.70372193, 3490.25969496,
+       3490.25969496, 3490.25969496, 3411.70372193, 3490.25969496,
+       3411.70372193, 3411.70372193, 3411.70372193, 3490.25969496,
+       3490.25969496, 3490.25969496, 3411.70372193, 3490.25969496,
+       3411.70372193, 3411.70372193, 3411.70372193, 3490.25969496,
+       3490.25969496, 3490.25969496, 3411.70372193, 3490.25969496,
+       3411.70372193, 3411.70372193, 3411.70372193, 3490.25969496,
+       3490.25969496, 3490.25969496, 3411.70372193, 3490.25969496,
+       3411.70372193, 3411.70372193, 3411.70372193, 3490.25969496,
+       3490.25969496, 3490.25969496, 3411.70372193, 3490.25969496,
+       3411.70372193, 3411.70372193, 3411.70372193, 3490.25969496,
+       3490.25969496, 3490.25969496, 3411.70372193, 3490.25969496,
+       3411.70372193, 3411.70372193, 3411.70372193, 3490.25969496,
+       3490.25969496, 3490.25969496, 3411.70372193, 3490.25969496,
+       3411.70372193, 3411.70372193, 3411.70372193, 3490.25969496,
+       3490.25969496, 3490.25969496, 3411.70372193, 3490.25969496,
+       3411.70372193, 3411.70372193, 3411.70372193, 3490.25969496,
+       3490.25969496, 3490.25969496, 3411.70372193, 3490.25969496,
+       3411.70372193, 3411.70372193, 3411.70372193, 3490.25969496,
+       3490.25969496, 3490.25969496, 3411.70372193, 3490.25969496])
+#+end_example
+
+Now can save this out for later loading in since this has all the info we need
+
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+def segment_rays(total_out, n_linear_det=5):
+    total_out_segments = []
+    for out in total_out:
+        out_segments, det_points = segment_detector(out, n_linear_det=n_linear_det)
+        total_out_segments.append(out_segments)
+        
+    return total_out_segments, det_points
+
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+total_out_segments, det_points =  segment_rays(out)
+#out_segments.shape
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+out[0]
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+array([[-2.57179603e-16, -2.57179603e-16, -2.57179603e-16, ...,
+        -3.14685393e-16, -2.57179603e-16, -3.14685393e-16],
+       [ 1.34474442e+01,  1.34474442e+01,  1.34474442e+01, ...,
+         1.32431645e+01,  1.34474442e+01,  1.32431645e+01],
+       [-2.09000000e+01, -2.09000000e+01, -2.09000000e+01, ...,
+        -2.09000000e+01, -2.09000000e+01, -2.09000000e+01],
+       ...,
+       [ 2.35619433e+00,  7.85398000e-01,  2.35619433e+00, ...,
+         2.35619433e+00,  7.85398000e-01,  2.35619433e+00],
+       [ 1.38074050e-12,  8.39944506e-13,  9.45596696e-02, ...,
+         1.38072585e-12,  1.55441657e-01,  9.45586660e-02],
+       [ 3.41170372e+03,  3.41170372e+03,  3.41170372e+03, ...,
+         3.49025969e+03,  3.41170372e+03,  3.49025969e+03]])
+#+end_example
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+total_out_segments[199][12]
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+array([[-3.68469301e-16, -3.68469301e-16, -3.68469301e-16, ...,
+        -9.37501637e-16, -3.68469301e-16, -9.37501637e-16],
+       [ 1.33443099e+01,  1.33443099e+01,  1.33443099e+01, ...,
+         1.33438041e+01,  1.33443099e+01,  1.33438041e+01],
+       [-2.09000000e+01, -2.09000000e+01, -2.09000000e+01, ...,
+        -2.09000000e+01, -2.09000000e+01, -2.09000000e+01],
+       ...,
+       [ 2.35619433e+00,  7.85398000e-01,  2.35619433e+00, ...,
+         2.35619433e+00,  7.85398000e-01,  2.35619433e+00],
+       [ 1.38074050e-12,  8.39944506e-13,  9.45596696e-02, ...,
+         1.38072585e-12,  1.55441657e-01,  9.45586660e-02],
+       [ 3.45081350e+03,  3.45081350e+03,  3.45081350e+03, ...,
+         3.45101039e+03,  3.45081350e+03,  3.45101039e+03]])
+#+end_example
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+center_data = total_out_segments[199]
+plt.scatter(det_points[:, 0], det_points[:, 1], c=list(
+    map(lambda x: x.shape[1], center_data)))
+plt.colorbar()
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/ee99017d3089b88616ed54f769170cd39635ec7c.png]]
+
+
+Now we just need to compute the interferogram for each and sum them at each
+position
+
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+len(total_out_segments[0])
+#+END_SRC
+
+#+RESULTS:
+: 25
+
+Now we need to turn total_out_segments into an array of size (25, 400, 9, len(rays))
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+reorganized_segments = []
+for j in range(len(det_points)):
+    reorganized_segments.append([])
+for i in range(len(total_out_segments)):
+    for j in range(len(total_out_segments[i])):
+        data = total_out_segments[i][j]
+        # if data is empty, do nothing
+        reorganized_segments[j].append(data)
+        
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+# for each each det position:
+#     sum at position = np.zeros
+#     for each start position:
+#         get rays within center and calculate interferogram
+#         add interferogram to sum at det position
+
+def data_to_matrix(center_data):
+    max_rays_num = max([data.shape[1] for data in center_data])
+    if max_rays_num == 0:
+        return None
+    total_rays = []
+    for data in center_data:
+        # only keep polarization, intensity, and phase
+        # could also keep detector position and angle separately
+        # if we're curious!
+        power_vals_mask = [6, 7, 8]
+        power_vals = data[power_vals_mask]
+        power_vals = power_vals.T
+        # pad rows now
+        total_vals = np.zeros((max_rays_num, 3))
+        total_vals[:power_vals.shape[0]] = power_vals
+        total_rays.append(total_vals)
+
+    return np.array(total_rays)
+    
+
+freqs = np.arange(120, 180, .5)
+start_positions = [0, 0]
+interferograms = []
+for j, det_center in enumerate(det_points):
+    interferogram_sum = np.zeros(len(delay))
+    # get the max number of rays 
+    data_matrix = data_to_matrix(reorganized_segments[j])
+    if (data_matrix is None):
+        interferogram = np.zeros(len(reorganized_segments[0]))
+    else:
+        interferogram = get_interferogram_frequency(data_matrix, freqs)
+    interferograms.append(interferogram)
+        
+#+END_SRC
+
+#+RESULTS:
+: 100%|██████████| 120/120 [00:00<00:00, 876.45it/s]
+: 100%|██████████| 120/120 [00:00<00:00, 298.94it/s]
+: 100%|██████████| 120/120 [00:00<00:00, 881.19it/s]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+for interferogram in interferograms:
+    plt.plot(delay, interferogram)
+    plt.show()
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+[[file:./.ob-jupyter/26ef0c4f13dbf26ceedecac308dbf8067052fd2f.png]]
+[[file:./.ob-jupyter/26ef0c4f13dbf26ceedecac308dbf8067052fd2f.png]]
+[[file:./.ob-jupyter/26ef0c4f13dbf26ceedecac308dbf8067052fd2f.png]]
+[[file:./.ob-jupyter/26ef0c4f13dbf26ceedecac308dbf8067052fd2f.png]]
+[[file:./.ob-jupyter/26ef0c4f13dbf26ceedecac308dbf8067052fd2f.png]]
+[[file:./.ob-jupyter/26ef0c4f13dbf26ceedecac308dbf8067052fd2f.png]]
+[[file:./.ob-jupyter/26ef0c4f13dbf26ceedecac308dbf8067052fd2f.png]]
+[[file:./.ob-jupyter/26ef0c4f13dbf26ceedecac308dbf8067052fd2f.png]]
+[[file:./.ob-jupyter/26ef0c4f13dbf26ceedecac308dbf8067052fd2f.png]]
+[[file:./.ob-jupyter/26ef0c4f13dbf26ceedecac308dbf8067052fd2f.png]]
+[[file:./.ob-jupyter/26ef0c4f13dbf26ceedecac308dbf8067052fd2f.png]]
+[[file:./.ob-jupyter/449d5ba643f0935dddf3b0e7271c00a6c8505da5.png]]
+[[file:./.ob-jupyter/b843ce7f00fec08bca50c46a8500871ddbfa9483.png]]
+[[file:./.ob-jupyter/a78ded3a131cf5a93448ecfbce4f20e2b39141d8.png]]
+[[file:./.ob-jupyter/26ef0c4f13dbf26ceedecac308dbf8067052fd2f.png]]
+[[file:./.ob-jupyter/26ef0c4f13dbf26ceedecac308dbf8067052fd2f.png]]
+[[file:./.ob-jupyter/26ef0c4f13dbf26ceedecac308dbf8067052fd2f.png]]
+[[file:./.ob-jupyter/26ef0c4f13dbf26ceedecac308dbf8067052fd2f.png]]
+[[file:./.ob-jupyter/26ef0c4f13dbf26ceedecac308dbf8067052fd2f.png]]
+[[file:./.ob-jupyter/26ef0c4f13dbf26ceedecac308dbf8067052fd2f.png]]
+[[file:./.ob-jupyter/26ef0c4f13dbf26ceedecac308dbf8067052fd2f.png]]
+[[file:./.ob-jupyter/26ef0c4f13dbf26ceedecac308dbf8067052fd2f.png]]
+[[file:./.ob-jupyter/26ef0c4f13dbf26ceedecac308dbf8067052fd2f.png]]
+[[file:./.ob-jupyter/26ef0c4f13dbf26ceedecac308dbf8067052fd2f.png]]
+[[file:./.ob-jupyter/26ef0c4f13dbf26ceedecac308dbf8067052fd2f.png]]
+:END:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+out_0 = trace_rays((0, 0), 400, 20, debug=True, 
+                   n_linear_theta=50, n_linear_phi=50) 
+
+# out_1 = trace_rays((10, 0), 400, 20, debug=True, 
+#                    n_linear_theta=50, n_linear_phi=50) 
+
+# out_2 = trace_rays((0, 10), 400, 20, debug=True, 
+#                    n_linear_theta=50, n_linear_phi=50) 
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+: 100%|██████████| 400/400 [14:01<00:00,  2.10s/it]
+: 100%|██████████| 400/400 [42:29<00:00,  6.37s/it]
+:END:
+
+try running 225 of these.... saving the outs from each one
+
+then for each z_ap we can combine each of these!!!
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plot_out(out_0[399], z=csims.FOCUS[2])
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/f53f2e2104797957309dddb0e018777d6e728f38.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+total_out_segments, det_points =  segment_rays(out_0)
+center_data = total_out_segments[10]
+plt.scatter(det_points[:, 0], det_points[:, 1], c=list(
+    map(lambda x: x.shape[1], center_data)))
+plt.colorbar()
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/16bea2469f22c6a8691f6149686bc33f6120e86c.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+reorganized_segments = []
+for j in range(len(det_points)):
+    reorganized_segments.append([])
+for i in range(len(total_out_segments)):
+    for j in range(len(total_out_segments[i])):
+        data = total_out_segments[i][j]
+        # if data is empty, do nothing
+        reorganized_segments[j].append(data)
+
+freqs = np.arange(120, 180, .5)
+start_positions = [0, 0]
+interferograms = []
+for j, det_center in enumerate(det_points):
+    interferogram_sum = np.zeros(len(delay))
+    # get the max number of rays 
+    data_matrix = data_to_matrix(reorganized_segments[j])
+    if (data_matrix is None):
+        interferogram = np.zeros(len(reorganized_segments[0]))
+    else:
+        interferogram = get_interferogram_frequency(data_matrix, freqs)
+    interferograms.append(interferogram)
+#+END_SRC
+
+#+RESULTS:
+: 100%|██████████| 120/120 [00:00<00:00, 1995.28it/s]
+: 100%|██████████| 120/120 [00:00<00:00, 1007.12it/s]
+: 100%|██████████| 120/120 [00:00<00:00, 176.92it/s]
+: 100%|██████████| 120/120 [00:03<00:00, 34.09it/s]
+: 100%|██████████| 120/120 [00:01<00:00, 87.90it/s]
+: 100%|██████████| 120/120 [00:00<00:00, 1243.46it/s]
+: 100%|██████████| 120/120 [00:00<00:00, 599.70it/s]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+for interferogram in interferograms:
+    if np.any(interferogram) == False:
+        continue
+        
+    plt.plot(delay, interferogram)
+    plt.show()
+    fftfreq = np.fft.rfftfreq(len(interferogram), d=(4 * 2 * 40 / 800) / 1.018357) 
+    fft_data = np.abs(np.fft.rfft(interferogram * np.hanning(
+        len(interferogram))))
+    #fft_data /= fft_data[120]
+    plt.plot(c * fftfreq[3:], fft_data[3:])
+    plt.xlim(110, 190)
+    #plt.ylim(1e-2, 1.1)
+    #plt.xlim(298, 305)
+    plt.xlabel('frequency')
+    #plt.yscale('log')
+    #plt.legend()
+    plt.ylabel('power')
+    plt.show()
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+[[file:./.ob-jupyter/b2f271d32a8777f85658ca667bf934afae96433a.png]]
+[[file:./.ob-jupyter/c621cc39033e8520cffe191173ddf753ada750e7.png]]
+[[file:./.ob-jupyter/bed7bd8feb7af64ffe47114867d81ca86fc1567a.png]]
+[[file:./.ob-jupyter/91f8bd8649898225658ff33ff5aeaa919e41d7d8.png]]
+[[file:./.ob-jupyter/5c049d3d05129b4ca27a149a78a47c45839da9b7.png]]
+[[file:./.ob-jupyter/619e3b14f71ec64979bce6fb745deb25ee6ef584.png]]
+[[file:./.ob-jupyter/e142defb66a495bc8e7c82ee3457f26b43ebd88a.png]]
+[[file:./.ob-jupyter/afae3f2cc70a98529b0cd8ea10b970878e7bd7b0.png]]
+[[file:./.ob-jupyter/1b6914531cc4d64f4b4cfaeed463f8333d87dc81.png]]
+[[file:./.ob-jupyter/ad14c1e4fa27c1a6a6e284a446b51151a03bbf4a.png]]
+[[file:./.ob-jupyter/918f663a9e1258313b75af2eff86a50014e33797.png]]
+[[file:./.ob-jupyter/186422a2c7f1229e0d4d12c9f9fd39cacec2cec1.png]]
+[[file:./.ob-jupyter/4ce03a874650fcf0672eacd9db5c4d668c119af4.png]]
+[[file:./.ob-jupyter/cc0778a7748acd7779e618e4a9dc79d45a6b4ec6.png]]
+:END:
+
+* This look good... now run a bunch of these and see what happens
+- try using 100, 100 rays for full spanning of space
+- save the initial out data for each one
+- then we can segment these together
+  
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+[list(o) for o in out])
+#+END_SRC
+
+#+RESULTS:
+: 400
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+test = [list(o) for o in out_0]
+np.array(list(np.array(test, dtype='object')[0])).shape
+#+END_SRC
+
+#+RESULTS:
+: (9, 1072)
+
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+data = np.array(test, dtype='object')
+np.save('data/test_data.npy', data)
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+test2 = np.load('data/test_data.npy', allow_pickle=True)
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+test_use = [np.array(list(o)) for o in test2]
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plt.plot(delay, [np.array(list(test2[i])).shape[1] for i in range(len(test2))])
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/9e7fe6273245dd890c8f3054d5f9956a3ac31e35.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+total_out_segments, det_points =  segment_rays(test_use)
+center_data = total_out_segments[10]
+plt.scatter(det_points[:, 0], det_points[:, 1], c=list(
+    map(lambda x: x.shape[1], center_data)))
+plt.colorbar()
+plt.show()
+
+reorganized_segments = []
+for j in range(len(det_points)):
+    reorganized_segments.append([])
+for i in range(len(total_out_segments)):
+    for j in range(len(total_out_segments[i])):
+        data = total_out_segments[i][j]
+        # if data is empty, do nothing
+        reorganized_segments[j].append(data)
+
+freqs = np.arange(120, 180, .5)
+start_positions = [0, 0]
+interferograms = []
+for j, det_center in enumerate(det_points):
+    interferogram_sum = np.zeros(len(delay))
+    # get the max number of rays 
+    data_matrix = data_to_matrix(reorganized_segments[j])
+    if (data_matrix is None):
+        interferogram = np.zeros(len(reorganized_segments[0]))
+    else:
+        interferogram = get_interferogram_frequency(data_matrix, freqs)
+    interferograms.append(interferogram)
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+[[file:./.ob-jupyter/16bea2469f22c6a8691f6149686bc33f6120e86c.png]]
+: 100%|██████████| 120/120 [00:00<00:00, 2090.15it/s]
+: 100%|██████████| 120/120 [00:00<00:00, 650.33it/s]
+: 100%|██████████| 120/120 [00:00<00:00, 168.30it/s]
+: 100%|██████████| 120/120 [00:02<00:00, 41.76it/s]
+: 100%|██████████| 120/120 [00:00<00:00, 137.95it/s]
+: 100%|██████████| 120/120 [00:00<00:00, 1364.36it/s]
+: 100%|██████████| 120/120 [00:00<00:00, 858.66it/s]
+:END:
+
+Now I just need to be able to combine two of these
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+def get_interferograms(out_data, freqs):
+    total_out_segments, det_points =  segment_rays(out_data)
+    reorganized_segments = []
+    for j in range(len(det_points)):
+        reorganized_segments.append([])
+    for i in range(len(total_out_segments)):
+        for j in range(len(total_out_segments[i])):
+            data = total_out_segments[i][j]
+            # if data is empty, do nothing
+            reorganized_segments[j].append(data)
+
+    interferograms = []
+    for j, det_center in enumerate(det_points):
+        interferogram_sum = np.zeros(len(delay))
+        # get the max number of rays 
+        data_matrix = data_to_matrix(reorganized_segments[j])
+        if (data_matrix is None):
+            interferogram = np.zeros(len(reorganized_segments[0]))
+        else:
+            interferogram = get_interferogram_frequency(
+                data_matrix, freqs, debug=True)
+            #interferogram = rt.get_interferogram(data_matrix, (c / 150.))
+        interferograms.append(interferogram)
+    return interferograms
+    
+
+def get_and_combine_interferograms(all_data, freqs):
+    total_interferograms = np.array(
+        [get_interferograms(data, freqs) for data in all_data])
+    print(total_interferograms.shape)
+    return total_interferograms
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+total = get_and_combine_interferograms([out_0, out_0], np.arange(150, 151, 1))
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+100%|██████████| 1/1 [00:00<00:00, 619.54it/s]
+100%|██████████| 1/1 [00:00<00:00, 407.85it/s]
+100%|██████████| 1/1 [00:00<00:00, 125.47it/s]
+100%|██████████| 1/1 [00:00<00:00, 35.26it/s]
+100%|██████████| 1/1 [00:00<00:00, 128.37it/s]
+100%|██████████| 1/1 [00:00<00:00, 261.49it/s]
+100%|██████████| 1/1 [00:00<00:00, 352.34it/s]
+100%|██████████| 1/1 [00:00<00:00, 525.73it/s]
+100%|██████████| 1/1 [00:00<00:00, 399.38it/s]
+100%|██████████| 1/1 [00:00<00:00, 118.88it/s]
+100%|██████████| 1/1 [00:00<00:00, 33.91it/s]
+100%|██████████| 1/1 [00:00<00:00, 126.10it/s]
+100%|██████████| 1/1 [00:00<00:00, 441.27it/s]
+100%|██████████| 1/1 [00:00<00:00, 372.56it/s](2, 25, 400)
+
+#+end_example
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.sum(total, axis=0).shape
+#+END_SRC
+
+#+RESULTS:
+: (25, 400)
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+def plot_interferograms(delay, interferograms):
+    for interferogram in interferograms:
+        if np.any(interferogram) == False:
+            continue
+
+        plt.plot(delay, interferogram)
+        plt.show()
+        fftfreq = np.fft.rfftfreq(len(interferogram), d=(4 * 2 * 40 / 800) / 1.018357) 
+        fft_data = np.abs(np.fft.rfft(interferogram * np.hanning(
+            len(interferogram))))
+        plt.axvline(150)
+        #fft_data /= fft_data[120]
+        plt.plot(c * fftfreq[3:], fft_data[3:])
+        plt.xlim(110, 190)
+        #plt.ylim(1e-2, 1.1)
+        #plt.xlim(298, 305)
+        plt.xlabel('frequency')
+        #plt.yscale('log')
+        #plt.legend()
+        plt.ylabel('power')
+        plt.show()
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plot_interferograms(delay, np.sum(total, axis=0))
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+[[file:./.ob-jupyter/6cc2e5db4bcaef025e5d74ac3d443275123de6ac.png]]
+[[file:./.ob-jupyter/9fad3939046b0162da6714f363602c868c6bf738.png]]
+[[file:./.ob-jupyter/55d094c6e4871898864851335953068bf68c5bdf.png]]
+[[file:./.ob-jupyter/23c18c60354d02fc8f19e16141e9cbd84f1b72d6.png]]
+[[file:./.ob-jupyter/47f80bdbd88d38c3c60027b84fcbe9f42de92127.png]]
+[[file:./.ob-jupyter/b590cfa79996b1865a3df5e5586f427a9ad1d3f2.png]]
+[[file:./.ob-jupyter/9a9b311c6543ebab0d42f125561151ea20dadc4a.png]]
+[[file:./.ob-jupyter/b802332e8baf19a1a5917ce1c108d8dc825ee667.png]]
+[[file:./.ob-jupyter/f23a82a042d8bb618b08c072f42a08cf1ef6d9a1.png]]
+[[file:./.ob-jupyter/231894ec63dfc998d733e1e5a660faf24e87b2d6.png]]
+[[file:./.ob-jupyter/4db2b5785d924028afec152aec79d9dd122fd73e.png]]
+[[file:./.ob-jupyter/e13dde96f634a458185fe71667b8ddc2b9e7c442.png]]
+[[file:./.ob-jupyter/12a4ba8805a2b68292ee9f3180c6eff3e6b69556.png]]
+[[file:./.ob-jupyter/9b62cffdfb53a88e68c5cda38237d4e5f367def7.png]]
+:END:
+
+** Now Add these to notebook utils

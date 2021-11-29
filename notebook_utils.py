@@ -303,7 +303,7 @@ def plot_shifts_end(shift, freqs, gaussian_shifts, gaussian_amplitudes,
     ax[0].plot(freqs, np.array(gaussian_shifts), '.', color='green')
     ax[0].set_xlabel('frequency [Ghz]')
     ax[0].set_ylabel('fractional frequency shift [Ghz]')
-    ax[0].set_ylim(-.1, 0)
+    # ax[0].set_ylim(-.1, 0)
     ax[0].grid()
 
     # from gaussian fitted maximum FFT value')
@@ -476,8 +476,7 @@ def main():
     # pickle.dump(total_attrs_y, open("z_2_one_point_50_35.p", "wb"))
 
     pickle.dump(total_attrs_xy, open(
-        "data/total_attrs_xz_15_15_20_57.p", "wb")
-    )
+        "data/total_attrs_xz_15_15_20_57.p", "wb"))
 
     # a run with only y shifts here!
 

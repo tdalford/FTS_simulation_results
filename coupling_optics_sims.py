@@ -772,6 +772,7 @@ def run_rays_through_coupling_optics_reversed(
             t_11*n_lens + t_12 + t_21*n_lens + t_22 +
             t_flat + t_31*n_lens + t_32 + dist_11_ap
         )
+        dist_in_lenses = t_11 + t_21 + t_31
 
         # print(t_11, t_12, t_21, t_22, t_flat, t_31,
         #       t_32, dist_11_ap)
@@ -812,7 +813,9 @@ def run_rays_through_coupling_optics_reversed(
         out[2].append(pos_ap[2])
 
         out[3].append(total_path_length)
-        out[4].append(0)
+        power_loss = np.exp(-1 * dist_in_lenses * (1 / mm_to_in) * 3e-4 * 2 * (
+            np.pi * n_lens))
+        out[4].append(power_loss)
 #         out[4, ii] = np.exp(
 #             (-0.5)
 #             * ((de_ve) ** 2 + (de_ho) ** 2)
@@ -854,7 +857,7 @@ def get_final_rays_reversed(shift, n_linear, theta_bound=.3,
                             y_ap=CENTER_11[1]):
     assert y_ap <= CENTER_11[1]
     # we want the shift in mm so now let's convert to inches
-    #shift = np.multiply(shift, mm_to_in)
+    # shift = np.multiply(shift, mm_to_in)
     # print(shift)
     start_position = FOCUS
     new_start = np.add(start_position, shift)
@@ -887,7 +890,7 @@ def run_rays_through_coupling_optics_forwards(
     else:
         n_pts = len(starting_rays)
 
-    out = [[], [], [], [], [], [], [], [], [], [], []]
+    out = [[], [], [], [], [], [], [], [], []]
 
     for ii in range(n_pts):
 
@@ -1449,26 +1452,34 @@ def run_rays_through_coupling_optics_forwards(
                          shift=shift_origin, tilt=tilt_angle,
                          fac=(1 / mm_to_in))
 
+        if (starting_rays is None):
+            pol_angle = 0
+            intensity = 1
+        else:
+            pol_angle = starting_rays[ii][0]
+            intensity = starting_rays[ii][1]
         # Write out
         out[0].append(pos_ap[0])
         out[1].append(pos_ap[1])
         out[2].append(pos_ap[2])
 
-        out[3].append(total_path_length)  # phase
-        out[4].append(0)
 #         out[4, ii] = np.exp(
 #             (-0.5)
 #             * ((de_ve) ** 2 + (de_ho) ** 2)
 #             / ((24 * np.pi / 180) / (np.sqrt(8 * np.log(2)))) ** 2 #amplitude
        # ) # Setting FWHP = 24 degrees, you should change this
 
-        out[5].append(N_hat_t[0])
-        out[6].append(N_hat_t[1])
-        out[7].append(N_hat_t[2])
+        # out[5].append(N_hat_t[0])
+        # out[6].append(N_hat_t[1])
+        # out[7].append(N_hat_t[2])
 
-        out[8].append(tan_og_t[0])
-        out[9].append(tan_og_t[1])
-        out[10].append(tan_og_t[2])
+        out[3].append(tan_og_t[0])
+        out[4].append(tan_og_t[1])
+        out[5].append(tan_og_t[2])
+
+        out[6].append(pol_angle)
+        out[7].append(intensity)
+        out[8].append(total_path_length)  # phase
 
     if (plot):
         plot_surface(Xt11, Yt11, Zt11, fig, 0, 100, 'teal', half_index=50,
