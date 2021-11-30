@@ -7857,7 +7857,7 @@ plt.show()
 #+BEGIN_SRC jupyter-python :session py :kernel python3
 
 def trace_rays(start_displacement, n_mirror_positions, ymax, n_linear_theta=100, 
-               n_linear_phi=100, n_lineardet=5, debug=False):
+               n_linear_phi=100, debug=False):
     with open("lab_fts_dims_act.yml", "r") as stream:
         config = yaml.safe_load(stream)
 
@@ -8459,3 +8459,75 @@ plot_interferograms(delay, np.sum(total, axis=0))
 :END:
 
 ** Now Add these to notebook utils
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.linspace(0, 0, 2)
+#+END_SRC
+
+#+RESULTS:
+: array([0., 0.])
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+data = pickle.load(open('data/total_outrays_0_test.p', 'rb'))
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+len(data[1])
+#+END_SRC
+
+#+RESULTS:
+: 400
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+total = get_and_combine_interferograms([data[0], data[0]], np.arange(150, 151, 1))
+plot_interferograms(delay, np.sum(total, axis=0))
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+: 100%|██████████| 1/1 [00:00<00:00, 372.03it/s]
+: 100%|██████████| 1/1 [00:00<00:00, 198.61it/s]
+: 100%|██████████| 1/1 [00:00<00:00, 469.21it/s]
+: 100%|██████████| 1/1 [00:00<00:00, 480.06it/s]
+: 100%|██████████| 1/1 [00:00<00:00, 252.08it/s]
+: 100%|██████████| 1/1 [00:00<00:00, 538.15it/s]
+: (2, 25, 400)
+[[file:./.ob-jupyter/bfb1f40d1922fc8d404da5434a85c1c2a3c87891.png]]
+[[file:./.ob-jupyter/967772bd01ca4fddb1b821a2e73e29cc93c43db1.png]]
+[[file:./.ob-jupyter/2b7d4b44f368df6a1d75d1cf390ad900bdc6a0db.png]]
+[[file:./.ob-jupyter/9500ea1655c5f93d9d89efa0f9d0b52e60969e9b.png]]
+[[file:./.ob-jupyter/5b66bde4b4372d122d2240a9930dd88d3ca02622.png]]
+[[file:./.ob-jupyter/e571c6e96ae5e85abec1f33bb48aa1ec7573aa55.png]]
+:END:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plot_out(data[0][0], z=csims.FOCUS[2], threshold=100)
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+: /Users/tommyalford/opt/anaconda3/lib/python3.8/site-packages/seaborn/distributions.py:1077: UserWarning:
+: 
+: Dataset has 0 variance; skipping density estimate.
+: 
+[[file:./.ob-jupyter/2c45a605722110b0bfd6f0bda99d656bc905c69f.png]]
+:END:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+p = data[0][399][[0, 1, 2]]
+plt.plot(p[0], p[1], '.')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/1d766482952e06cdc5abdaa2ce1d64a3b045236e.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+p = data[0][199][[0, 1, 2]]
+len(p[0] - csims.FOCUS[0]) / 8
+#+END_SRC
+
+#+RESULTS:
+: 20.0

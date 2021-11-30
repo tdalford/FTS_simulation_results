@@ -181,6 +181,16 @@ def create_source_rays_uniform_from_start_displacement(
     return rays
 
 
+def get_centers(n_linear_det):
+    displacements = []
+    centers = np.linspace(-(n_linear_det // 2), (n_linear_det // 2),
+                          n_linear_det) * DET_SIZE
+    for x_center in centers:
+        for y_center in centers:
+            displacements.append((x_center, y_center))
+    return displacements
+
+
 def segment_detector(outrays, n_linear_det=5):
     points = outrays[[0, 1, 2]] * IN_TO_MM
 
