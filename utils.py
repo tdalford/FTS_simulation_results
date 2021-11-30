@@ -248,11 +248,12 @@ def trace_rays(start_displacement, n_mirror_positions, ymax,
     return total_outrays
 
 
+# remove the outliers for this as well!
 def segment_rays(total_out, n_linear_det=5):
     total_out_segments = []
     for out in total_out:
         out_segments, det_points = segment_detector(
-            out, n_linear_det=n_linear_det)
+            remove_outliers(out), n_linear_det=n_linear_det)
         total_out_segments.append(out_segments)
     return total_out_segments, det_points
 
@@ -298,7 +299,7 @@ def get_interferogram_frequency(outrays, frequencies, debug=True):
 
 
 def get_interferograms(out_data, freqs):
-    total_out_segments, det_points = segment_rays(remove_outliers(out_data))
+    total_out_segments, det_points = segment_rays(out_data)
     reorganized_segments = []
     for j in range(len(det_points)):
         reorganized_segments.append([])
