@@ -298,7 +298,7 @@ def get_interferogram_frequency(outrays, frequencies, debug=True):
 
 
 def get_interferograms(out_data, freqs):
-    total_out_segments, det_points = segment_rays(out_data)
+    total_out_segments, det_points = segment_rays(remove_outliers(out_data))
     reorganized_segments = []
     for j in range(len(det_points)):
         reorganized_segments.append([])
