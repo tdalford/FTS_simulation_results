@@ -317,15 +317,19 @@ def get_interferograms(out_data, freqs):
             interferogram = np.zeros(len(reorganized_segments[0]))
         else:
             interferogram = get_interferogram_frequency(
-                data_matrix, freqs, debug=True)
+                data_matrix, freqs, debug=False)
             #interferogram = rt.get_interferogram(data_matrix, (c / 150.))
         interferograms.append(interferogram)
     return interferograms
 
 
-def get_and_combine_interferograms(all_data, freqs):
-    total_interferograms = np.array(
-        [get_interferograms(data, freqs) for data in all_data])
+def get_and_combine_interferograms(all_data, freqs, debug=True):
+    total_interferograms = []
+    for data in tqdm(all_data, disble=(not debug)):
+        interferograms = get_interferograms(data, freqs)
+        total_interferograms.append(interferograms)
+    total_interferograms = np.array(total_interferograms)
+
     print(total_interferograms.shape)
     return total_interferograms
 
