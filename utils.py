@@ -325,7 +325,7 @@ def get_interferograms(out_data, freqs):
 
 def get_and_combine_interferograms(all_data, freqs, debug=True):
     total_interferograms = []
-    for data in tqdm(all_data, disble=(not debug)):
+    for data in tqdm(all_data, disable=(not debug)):
         interferograms = get_interferograms(data, freqs)
         total_interferograms.append(interferograms)
     total_interferograms = np.array(total_interferograms)
