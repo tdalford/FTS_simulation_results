@@ -23,7 +23,7 @@ def get_aspect(config, aspect, element, number):
     Parameters:
         config (yaml file)  -- yaml configuration file loaded
         aspect (str)        -- aspect of the FTS (origins, angles, coefficients, etc)
-        element (str)       -- element of the FTS for which this aspect is defined 
+        element (str)       -- element of the FTS for which this aspect is defined
                               (ellipses, mirror, polarizers)
         number (int)        -- number of the element that we're specifically interested
                             in (1-10 for ellipses, 1-4 for polarizers)'''
@@ -91,7 +91,7 @@ def transform_points(x_vals, y_vals, z_vals, new_origin, rotation_matrix):
     ZTR = []
     for i in range(0, len(x_vals)):
         v = [x_vals[i], y_vals[i], z_vals[i]]
-        #v2R = rotate(v, thetaxyz)
+        # v2R = rotate(v, thetaxyz)
         v2R = np.dot(v, rotation_matrix)
         v2RS = v2R + new_origin
         XTR.append(v2RS[0])
@@ -318,7 +318,7 @@ def get_interferograms(out_data, freqs):
         else:
             interferogram = get_interferogram_frequency(
                 data_matrix, freqs, debug=False)
-            #interferogram = rt.get_interferogram(data_matrix, (c / 150.))
+            # interferogram = rt.get_interferogram(data_matrix, (c / 150.))
         interferograms.append(interferogram)
     return interferograms
 
@@ -339,7 +339,7 @@ def add_outrays(total_outrays, start_displacement, n_mirror_positions,
     outrays = trace_rays(start_displacement, n_mirror_positions, y_max,
                          n_linear_theta=n_linear_theta,
                          n_linear_phi=n_linear_phi, debug=debug)
-    total_outrays.put(outrays)
+    total_outrays.put([outrays, start_displacement])
     semaphore.release()
 
 
@@ -373,9 +373,71 @@ def get_outrays_threaded(
 
     # convert the shared queue to a list.
     outrays_list = []
+    start_displacement_list = []
     while (total_outrays.qsize() != 0):
-        outrays_list.append(total_outrays.get())
-    return outrays_list
+        outrays, displacement = total_outrays.get()
+        outrays_list.append(outrays)
+        start_displacement_list.append(displacement)
+    return outrays_list, start_displacement_list
+
+
+def process_interferogram(outrays, start_displacement, total_interferograms, z,
+                          freqs, semaphore):
+    # these are individual rays from one point source
+    if z != csims.FOCUS[2]:
+        outrays_at_z = get_rays_at_z(outrays, z)
+    interferograms = get_interferograms(outrays_at_z, freqs)
+    total_interferograms.put([interferograms, start_displacement])
+    semaphore.release()
+
+
+def postprocess_interferograms(outrays_list, displacement_list, freqs,
+                               z=csims.FOCUS[2]):
+    processes = []
+    max_processes = 55
+    semaphore = Semaphore(max_processes)
+    manager = Manager()
+    total_interferograms = manager.Queue()
+
+    for outrays, displacement in zip(outrays_list, displacement_list):
+        semaphore.acquire()
+        process = Process(target=process_interferogram, args=(
+            outrays, displacement, total_interferograms, z, freqs, semaphore))
+
+        print('process %s starting.' % len(processes))
+        process.start()
+        processes.append(process)
+
+    # Wait for all the processes to finish before converting to a list.
+    for i, process in enumerate(processes):
+        print('process %s joining.' % i)
+        process.join()
+        print('process %s finishg.' % i)
+
+    # convert the shared queue to a list.
+    total_interferograms_list = []
+    start_displacement_list = []
+    while (total_interferograms.qsize() != 0):
+        interferograms, displacement = total_interferograms.get()
+        total_interferograms_list.append(interferograms)
+        start_displacement_list.append(displacement)
+    return total_interferograms_list, start_displacement_list
+
+
+def prostprocess():
+    outrays = pickle.load(open("data/total_outrays_0_test.p", "rb"))
+    displacements = pickle.load(open("data/displacement_0.p", "rb"))
+    freqs = np.arange(15, 300, .5)
+
+    total_interferograms, displacements = postprocess_interferograms(
+        outrays, displacements, freqs, z=csims.FOCUS[2])
+    total_interferograms = np.array(total_interferograms)
+    interferogram_sum = np.sum(total_interferograms, axis=0)
+
+    pickle.dump(interferogram_sum, open(
+        "data/final_summed_interferograms_0.p", "wb"))
+    # save this for loading elsewhere
+    print('finished!')
 
 
 def main():
@@ -393,14 +455,17 @@ def main():
 
     x_vals = np.linspace(0, 0, 2)
     y_vals = np.linspace(0, 0, 1)
-    #z_vals = np.linspace(0, 0, 1)
+    # z_vals = np.linspace(0, 0, 1)
 
-    total_outrays_0 = get_outrays_threaded(
+    total_outrays_0, displacements = get_outrays_threaded(
         x_vals, y_vals, n_mirror_positions, FTS_stage_throw,
         n_linear_theta=20, n_linear_phi=20, debug=True)
 
     pickle.dump(total_outrays_0, open(
         "data/total_outrays_0_test.p", "wb"))
+
+    pickle.dump(total_outrays_0, open(
+        "data/displacements_0.p", "wb"))
 
     # save this for loading elsewhere
     print('finished!')
