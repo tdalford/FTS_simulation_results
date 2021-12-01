@@ -443,6 +443,62 @@ def postprocess():
     print('finished!')
 
 
+def process_interferogram_discrete(
+        outrays, frequency, total_interferograms, semaphore):
+    interferogram_sum_frequency = np.sum(get_and_combine_interferograms(
+        outrays, np.arange(frequency, frequency + 1, 1),
+        debug=False), axis=0)
+    total_interferograms.put([frequency, interferogram_sum_frequency])
+    semaphore.release()
+
+
+def postprocess_interferograms_discrete(ray_data, frequencies):
+
+    processes = []
+    max_processes = 55
+    semaphore = Semaphore(max_processes)
+    manager = Manager()
+    total_interferograms = manager.Queue()
+
+    for freq in frequencies:
+        semaphore.acquire()
+        process = Process(target=process_interferogram_discrete, args=(
+            ray_data, total_interferograms, freq, semaphore))
+
+        print('process %s starting.' % len(processes))
+        process.start()
+        processes.append(process)
+
+    # Wait for all the processes to finish before converting to a list.
+    for i, process in enumerate(processes):
+        print('process %s joining.' % i)
+        process.join()
+        print('process %s finishg.' % i)
+
+    # convert the shared queue to a list.
+    total_interferogram_list = []
+    frequency_list = []
+    while (total_interferograms.qsize() != 0):
+        frequency, interferograms = total_interferograms.get()
+        total_interferograms_list.append(interferograms)
+        frequency_list.append(frequency)
+
+    return total_interferogram_list, frequency_list
+
+
+def postprocess_discrete():
+    data = pickle.load(
+        open("/data/talford/FTS_sim_results/total_outrays_0_40_31_31.p", "rb"))
+    freqs = np.arange(20, 300, 1)
+    total_interferogram_list, frequency_list = \
+        postprocess_interferograms_discrete(data, freqs)
+
+    pickle.dump([frequency_list, total_interferogram_list], open(
+        "/data/talford/FTS_sim_results/all_discrete_interferograms.p", "wb"))
+    # save this for loading elsewhere
+    print('finished!')
+
+
 def main():
     FTS_stage_throw = 20.     # total throw extent in mm
     FTS_stage_step_size = 0.1  # FTS step size in mm
@@ -466,6 +522,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # main()
     # postprocess()
+    postprocess_discrete()
     exit()
