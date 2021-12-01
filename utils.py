@@ -463,7 +463,7 @@ def postprocess_interferograms_discrete(ray_data, frequencies):
     for freq in frequencies:
         semaphore.acquire()
         process = Process(target=process_interferogram_discrete, args=(
-            ray_data, total_interferograms, freq, semaphore))
+            ray_data, freq, total_interferograms, semaphore))
 
         print('process %s starting.' % len(processes))
         process.start()
