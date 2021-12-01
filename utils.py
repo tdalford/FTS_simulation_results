@@ -424,48 +424,42 @@ def postprocess_interferograms(outrays_list, displacement_list, freqs,
     return total_interferograms_list, start_displacement_list
 
 
-def prostprocess():
-    outrays = pickle.load(open("data/total_outrays_0_test.p", "rb"))
-    displacements = pickle.load(open("data/displacement_0.p", "rb"))
-    freqs = np.arange(15, 300, .1)
+def postprocess():
+    outrays = pickle.load(
+        open("/data/talford/FTS_sim_results/total_outrays_0_11_11.p", "rb"))
+    displacements = np.zeros(len(outrays))  # create dummy displacements
+    #displacements = pickle.load(open("data/displacement_0.p", "rb"))
+    freqs = np.arange(20, 300, .1)
 
-    total_interferograms, displacements = postprocess_interferograms(
+    print(freqs)
+    total_interferograms, _ = postprocess_interferograms(
         outrays, displacements, freqs, z=csims.FOCUS[2])
     total_interferograms = np.array(total_interferograms)
     interferogram_sum = np.sum(total_interferograms, axis=0)
 
     pickle.dump(interferogram_sum, open(
-        "data/final_summed_interferograms_0.p", "wb"))
+        "/data/talford/FTS_sim_results/final_summed_interferograms_0_11_11_high_res.p", "wb"))
     # save this for loading elsewhere
     print('finished!')
 
 
 def main():
-    # FTS_stage_step_size = 0.375  # FTS step size in mm
-    # FTS_stage_step_size = 0.15  # FTS step size in mm
-    # FTS_stage_throw = 35.     # total throw extent in mm
-
-    # n_mirror_positions = (2 * FTS_stage_throw / FTS_stage_step_size)
-    # n_mirror_positions = 2 * (FTS_stage_throw / .15)
-
     FTS_stage_throw = 20.     # total throw extent in mm
     FTS_stage_step_size = 0.1  # FTS step size in mm
-    # n_mirror_positions = (20 * 2 / .1)
     n_mirror_positions = (2 * FTS_stage_throw / FTS_stage_step_size)
 
-    x_vals = np.linspace(0, 0, 2)
-    y_vals = np.linspace(0, 0, 1)
-    # z_vals = np.linspace(0, 0, 1)
+    x_vals = np.linspace(-40, 40, 31)
+    y_vals = np.linspace(40, 40, 31)
 
-    total_outrays_0, displacements = get_outrays_threaded(
+    total_outrays_0_40_31_31, displacements = get_outrays_threaded(
         x_vals, y_vals, n_mirror_positions, FTS_stage_throw,
-        n_linear_theta=20, n_linear_phi=20, debug=True)
+        n_linear_theta=150, n_linear_phi=30, debug=True)
 
-    pickle.dump(total_outrays_0, open(
-        "data/total_outrays_0_test.p", "wb"))
+    pickle.dump(total_outrays_0_40_31_31, open(
+        "/data/talford/FTS_sim_results/total_outrays_0_40_31_31.p", "wb"))
 
-    pickle.dump(total_outrays_0, open(
-        "data/displacements_0.p", "wb"))
+    pickle.dump(displacements, open(
+        "/data/talford/FTS_sim_results/displacements_0_40_31_31.p", "wb"))
 
     # save this for loading elsewhere
     print('finished!')
@@ -473,4 +467,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+    # postprocess()
     exit()
