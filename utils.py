@@ -452,11 +452,11 @@ def process_interferogram_discrete(
     semaphore.release()
 
 
-def get_interferogram_rays_at_z(ray_data):
+def get_interferogram_rays_at_z(ray_data, z):
     # Ray data should be of size (n_rays, n_mirror_positions)
     for i in range(len(ray_data)):
         for j in range(len(ray_data[i])):
-            ray_data[i][j] = get_rays_at_z(ray_data[i][j])
+            ray_data[i][j] = get_rays_at_z(ray_data[i][j], z)
     return ray_data
 
 
