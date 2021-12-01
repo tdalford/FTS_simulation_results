@@ -505,7 +505,7 @@ def main():
     n_mirror_positions = (2 * FTS_stage_throw / FTS_stage_step_size)
 
     x_vals = np.linspace(-40, 40, 31)
-    y_vals = np.linspace(40, 40, 31)
+    y_vals = np.linspace(-40, 40, 31)
 
     total_outrays_0_40_31_31, displacements = get_outrays_threaded(
         x_vals, y_vals, n_mirror_positions, FTS_stage_throw,
@@ -522,7 +522,7 @@ def main():
 
 
 if __name__ == '__main__':
-    # main()
+    main()
     # postprocess()
-    postprocess_discrete()
+    # postprocess_discrete()
     exit()
