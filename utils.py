@@ -452,13 +452,26 @@ def process_interferogram_discrete(
     semaphore.release()
 
 
-def postprocess_interferograms_discrete(ray_data, frequencies):
+def get_interferogram_rays_at_z(ray_data):
+    # Ray data should be of size (n_rays, n_mirror_positions)
+    for i in range(len(ray_data)):
+        for j in range(len(ray_data[i])):
+            ray_data[i][j] = get_rays_at_z(ray_data[i][j])
+    return ray_data
+
+
+def postprocess_interferograms_discrete(ray_data, frequencies,
+                                        z=csims.FOCUS[2]):
 
     processes = []
     max_processes = 55
     semaphore = Semaphore(max_processes)
     manager = Manager()
     total_interferograms = manager.Queue()
+
+    if z != csims.FOCUS[2]:
+        print('Propagating rays to position z = %s.' % z)
+        ray_data = get_interferogram_rays_at_z(ray_data)
 
     for freq in frequencies:
         semaphore.acquire()
@@ -495,6 +508,24 @@ def postprocess_discrete():
 
     pickle.dump([frequency_list, total_interferogram_list], open(
         "/data/talford/FTS_sim_results/all_discrete_interferograms.p", "wb"))
+    # save this for loading elsewhere
+    print('finished!')
+
+
+def postprocess_discrete_z_positions():
+    data = pickle.load(
+        open("/data/talford/FTS_sim_results/total_outrays_0_40_31_31.p", "rb"))
+
+    freqs = np.arange(20, 300, 1)
+    all_z_interferograms = []
+    for z in (1 / IN_TO_MM) * np.linspace(-25, 25, 10):
+        total_interferogram_list_at_z, frequency_list = \
+            postprocess_interferograms_discrete(data, freqs, z=z)
+        all_z_interferograms.append(total_interferogram_list_at_z)
+
+    pickle.dump([frequency_list, all_z_interferograms], open(
+        "/data/talford/FTS_sim_results/all_discrete_interferograms_z_shift.p",
+        "wb"))
     # save this for loading elsewhere
     print('finished!')
 
