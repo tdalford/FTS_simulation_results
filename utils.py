@@ -454,14 +454,12 @@ def process_interferogram_discrete(
 
 def get_interferogram_rays_at_z(ray_data, z):
     # Ray data should be of size (n_rays, n_mirror_positions)
-    for i in range(len(ray_data)):
-        for j in range(len(ray_data[i])):
-            ray_data[i][j] = get_rays_at_z(ray_data[i][j], z)
-    return ray_data
+    return [[get_rays_at_z(ray_data[i][j], z) for j in range(len(
+        ray_data[i]))] for i in range(len(ray_data))]
 
 
 def postprocess_interferograms_discrete(ray_data, frequencies,
-                                        z=csims.FOCUS[2]):
+                                        z_shift=0):
 
     processes = []
     max_processes = 55
@@ -469,9 +467,10 @@ def postprocess_interferograms_discrete(ray_data, frequencies,
     manager = Manager()
     total_interferograms = manager.Queue()
 
-    if z != csims.FOCUS[2]:
-        print('Propagating rays to position z = %s.' % z)
-        ray_data = get_interferogram_rays_at_z(ray_data)
+    if z_shift != 0:
+        print('Propagating rays z shift of %s inches.' % z_shift)
+        ray_data = get_interferogram_rays_at_z(
+            ray_data, csims.FOCUS[2] + z_shift)
 
     for freq in frequencies:
         semaphore.acquire()
@@ -520,7 +519,8 @@ def postprocess_discrete_z_positions():
     all_z_interferograms = []
     for z in (1 / IN_TO_MM) * np.linspace(-25, 25, 10):
         total_interferogram_list_at_z, frequency_list = \
-            postprocess_interferograms_discrete(data, freqs, z=z)
+            postprocess_interferograms_discrete(data, freqs, z=(
+                csims.FOCUS[2] + z))
         all_z_interferograms.append(total_interferogram_list_at_z)
 
     pickle.dump([frequency_list, all_z_interferograms], open(
