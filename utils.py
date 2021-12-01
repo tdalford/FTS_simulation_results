@@ -480,7 +480,7 @@ def postprocess_interferograms_discrete(ray_data, frequencies):
     frequency_list = []
     while (total_interferograms.qsize() != 0):
         frequency, interferograms = total_interferograms.get()
-        total_interferograms_list.append(interferograms)
+        total_interferogram_list.append(interferograms)
         frequency_list.append(frequency)
 
     return total_interferogram_list, frequency_list

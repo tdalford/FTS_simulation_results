@@ -175,7 +175,7 @@ def scan_frequency_range(delay, outrays, freqs, ymax):
             get_frequency_shift_and_peak_width(freq, ij, ymax, plot_vals=False,
                                                print_vals=False)
         gaussian_amplitude, max_fft = get_amplitude(
-            delay, ij, ymax, print_vals=False)
+            freq, ij, ymax, print_vals=False)
 
         peak_shifts.append(peak_shift)
         gaussian_shifts.append(gaussian_shift)
