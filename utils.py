@@ -248,12 +248,12 @@ def trace_rays(start_displacement, n_mirror_positions, ymax,
     return total_outrays
 
 
-# remove the outliers for this as well!
+# remove the outliers for this as well!-- stop doing this it takes too long
 def segment_rays(total_out, n_linear_det=5):
     total_out_segments = []
     for out in total_out:
         out_segments, det_points = segment_detector(
-            remove_outliers(out), n_linear_det=n_linear_det)
+            out, n_linear_det=n_linear_det)
         total_out_segments.append(out_segments)
     return total_out_segments, det_points
 
@@ -427,7 +427,7 @@ def postprocess_interferograms(outrays_list, displacement_list, freqs,
 def prostprocess():
     outrays = pickle.load(open("data/total_outrays_0_test.p", "rb"))
     displacements = pickle.load(open("data/displacement_0.p", "rb"))
-    freqs = np.arange(15, 300, .5)
+    freqs = np.arange(15, 300, .1)
 
     total_interferograms, displacements = postprocess_interferograms(
         outrays, displacements, freqs, z=csims.FOCUS[2])
