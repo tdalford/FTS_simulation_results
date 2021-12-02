@@ -329,8 +329,6 @@ def get_and_combine_interferograms(all_data, freqs, debug=True):
         interferograms = get_interferograms(data, freqs)
         total_interferograms.append(interferograms)
     total_interferograms = np.array(total_interferograms)
-
-    print(total_interferograms.shape)
     return total_interferograms
 
 
@@ -511,7 +509,7 @@ def postprocess_discrete():
 def postprocess_discrete_z_positions():
 
     data = []
-    fname = "/data/talford/FTS_sim_results/total_outrays_0_40_31_31.p"
+    fname = "/data/talford/FTS_sim_results/total_outrays_0_35_25_25.p"
 
     with open(fname, 'rb') as f:
         try:
@@ -519,17 +517,19 @@ def postprocess_discrete_z_positions():
                 data.append(pickle.load(f))
         except EOFError:
             pass
-
-    freqs = np.arange(20, 300, 1)
+    # It should take around 14h to run 21 of these data points. To cut down on
+    # this I'll change the frequency resolution to 5 and run 11 data points.
+    # so this should now take ~1.4 hours
+    freqs = np.arange(20, 300, 5)
     all_z_interferograms = []
-    for z in (1 / IN_TO_MM) * np.linspace(-25, 25, 10):
+    for z in (1 / IN_TO_MM) * np.linspace(-25, 75, 11):
         total_interferogram_list_at_z, frequency_list = \
             postprocess_interferograms_discrete(data, freqs, z_shift=z)
         all_z_interferograms.append(total_interferogram_list_at_z)
 
-    pickle.dump([frequency_list, all_z_interferograms], open(
+    pickle.dump([freqs, all_z_interferograms], open(
         "/data/talford/FTS_sim_results/all_discrete_interferograms_z_shift.p",
-        "wb"))
+        "wb"), pickle.HIGHEST_PROTOCOL)
     # save this for loading elsewhere
     print('finished!')
 
