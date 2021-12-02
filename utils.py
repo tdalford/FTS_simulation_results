@@ -477,15 +477,12 @@ def postprocess_interferograms_discrete(ray_data, frequencies,
         process = Process(target=process_interferogram_discrete, args=(
             ray_data, freq, total_interferograms, semaphore))
 
-        print('process %s starting.' % len(processes))
         process.start()
         processes.append(process)
 
     # Wait for all the processes to finish before converting to a list.
     for i, process in enumerate(processes):
-        print('process %s joining.' % i)
         process.join()
-        print('process %s finishg.' % i)
 
     # convert the shared queue to a list.
     total_interferogram_list = []
@@ -519,8 +516,7 @@ def postprocess_discrete_z_positions():
     all_z_interferograms = []
     for z in (1 / IN_TO_MM) * np.linspace(-25, 25, 10):
         total_interferogram_list_at_z, frequency_list = \
-            postprocess_interferograms_discrete(data, freqs, z=(
-                csims.FOCUS[2] + z))
+            postprocess_interferograms_discrete(data, freqs, z_shift=z)
         all_z_interferograms.append(total_interferogram_list_at_z)
 
     pickle.dump([frequency_list, all_z_interferograms], open(
@@ -535,18 +531,20 @@ def main():
     FTS_stage_step_size = 0.1  # FTS step size in mm
     n_mirror_positions = (2 * FTS_stage_throw / FTS_stage_step_size)
 
-    x_vals = np.linspace(-40, 40, 31)
-    y_vals = np.linspace(-40, 40, 31)
+    x_vals = np.linspace(-35, 35, 25)
+    y_vals = np.linspace(-35, 35, 25)
 
-    total_outrays_0_40_31_31, displacements = get_outrays_threaded(
+    total_outrays, displacements = get_outrays_threaded(
         x_vals, y_vals, n_mirror_positions, FTS_stage_throw,
-        n_linear_theta=150, n_linear_phi=30, debug=True)
+        n_linear_theta=300, n_linear_phi=15, debug=True)
 
-    pickle.dump(total_outrays_0_40_31_31, open(
-        "/data/talford/FTS_sim_results/total_outrays_0_40_31_31.p", "wb"))
+    fname = "/data/talford/FTS_sim_results/total_outrays_0_35_25_25.p"
+    for outrays in total_outrays:
+        with open(fname, 'ab') as output:
+            pickle.dump(outrays, output, pickle.HIGHEST_PROTOCOL)
 
     pickle.dump(displacements, open(
-        "/data/talford/FTS_sim_results/displacements_0_40_31_31.p", "wb"))
+        "/data/talford/FTS_sim_results/displacements_0_35_25_25.p", "wb"))
 
     # save this for loading elsewhere
     print('finished!')
