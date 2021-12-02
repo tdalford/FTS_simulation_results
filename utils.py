@@ -509,8 +509,16 @@ def postprocess_discrete():
 
 
 def postprocess_discrete_z_positions():
-    data = pickle.load(
-        open("/data/talford/FTS_sim_results/total_outrays_0_40_31_31.p", "rb"))
+
+    data = []
+    fname = "/data/talford/FTS_sim_results/total_outrays_0_40_31_31.p"
+
+    with open(fname, 'rb') as f:
+        try:
+            while True:
+                data.append(pickle.load(f))
+        except EOFError:
+            pass
 
     freqs = np.arange(20, 300, 1)
     all_z_interferograms = []
@@ -536,7 +544,7 @@ def main():
 
     total_outrays, displacements = get_outrays_threaded(
         x_vals, y_vals, n_mirror_positions, FTS_stage_throw,
-        n_linear_theta=300, n_linear_phi=15, debug=True)
+        n_linear_theta=300, n_linear_phi=15, debug=False)
 
     fname = "/data/talford/FTS_sim_results/total_outrays_0_35_25_25.p"
     for outrays in total_outrays:
