@@ -559,7 +559,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # main()
     # postprocess()
-    # postprocess_discrete()
+    postprocess_discrete()
     exit()
