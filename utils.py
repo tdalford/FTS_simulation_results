@@ -490,7 +490,11 @@ def postprocess_interferograms_discrete(ray_data, frequencies,
         total_interferogram_list.append(interferograms)
         frequency_list.append(frequency)
 
-    return total_interferogram_list, frequency_list
+    # sort these myself.
+    sort_inds = np.argsort(frequency_list)
+
+    return np.array(total_interferogram_list)[sort_inds], \
+        np.array(frequency_list)[sort_inds]
 
 
 def postprocess_discrete():
@@ -522,18 +526,17 @@ def postprocess_discrete_z_positions():
     # so this should now take ~1.4 hours
 
     # In actuality it took 3ish hours
-    freqs = np.arange(20, 200, 5)
-    frequency_lists = []
-    all_z_interferograms = []
-    for z in (1 / IN_TO_MM) * np.linspace(-25, 75, 11):
+    freqs = np.arange(20, 300, 20)
+    fname = "/data/talford/FTS_sim_results/all_discrete_interferograms_z" + (
+        "_shift_0_35_25_25.p")
+
+    for z in (1 / IN_TO_MM) * np.linspace(-50, 75, 11):
         total_interferogram_list_at_z, frequency_list = \
             postprocess_interferograms_discrete(data, freqs, z_shift=z)
-        all_z_interferograms.append(total_interferogram_list_at_z)
-        frequency_lists.append(frequency_list)
 
-    pickle.dump([frequency_lists, all_z_interferograms], open(
-        "/data/talford/FTS_sim_results/all_discrete_interferograms_z_shift_0_35_25_25.p",
-        "wb"), pickle.HIGHEST_PROTOCOL)
+        pickle.dump([frequency_list, total_interferogram_list_at_z], open(
+            fname, "ab"), pickle.HIGHEST_PROTOCOL)
+
     # save this for loading elsewhere
     print('finished!')
 
