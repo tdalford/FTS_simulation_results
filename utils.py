@@ -59,6 +59,7 @@ def remove_outliers(out, threshold=5, debug=False):
 
 
 # just subtract our z coordinate until we hit -20.9
+# I should probably get rid of these magic numbers
 def get_distances_at_z(out, z_coordinate):
     iters = (out[2] - z_coordinate) / out[5]
     return out[8] - iters / csims.mm_to_in
@@ -526,15 +527,16 @@ def postprocess_discrete_z_positions():
     # so this should now take ~1.4 hours
 
     # In actuality it took 3ish hours
-    freqs = np.arange(20, 300, 20)
+    freqs = np.arange(20, 300, 5)
     fname = "/data/talford/FTS_sim_results/all_discrete_interferograms_z" + (
         "_shift_0_35_25_25.p")
+    z_coordinates = (1 / IN_TO_MM) * np.linspace(-50, 75, 31)
 
-    for z in (1 / IN_TO_MM) * np.linspace(-50, 75, 11):
+    for z in z_coordinates:
         total_interferogram_list_at_z, frequency_list = \
             postprocess_interferograms_discrete(data, freqs, z_shift=z)
 
-        pickle.dump([frequency_list, total_interferogram_list_at_z], open(
+        pickle.dump([z, frequency_list, total_interferogram_list_at_z], open(
             fname, "ab"), pickle.HIGHEST_PROTOCOL)
 
     # save this for loading elsewhere

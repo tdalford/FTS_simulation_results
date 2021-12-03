@@ -7615,13 +7615,17 @@ source center,
 def create_source_rays_uniform_from_start_displacement(
         source_origin, source_normal_vec, horiz_displacement, 
         vert_displacement, n_linear_theta, n_linear_phi, config, 
-        check_rays=True, theta_bound=np.pi / 2, timeout=10):
+        check_rays=True, theta_bound=np.pi / 2, timeout=10, 
+        count_thetas=False):
     # first create rays distributed in the upwards cone
     # and then rotate them to center them around the normal
     # also create them around a variety of starting points
     # assume radially symmetric source
     rotation_matrix = get_rotation_matrix(source_normal_vec, [0, 0, 1])
     rays = []
+    
+    if (count_thetas):
+        good_vals = []
     
     # n^2 computations here
     starting_time = time.time()
@@ -7656,9 +7660,13 @@ def create_source_rays_uniform_from_start_displacement(
                 final_ray = run_ray_through_sim(ray, config, None, paths)
                 if (final_ray is not None):
                     rays.append(ray)
+                    if (count_thetas):
+                        good_vals.append([theta_val, phi_val])
             else:
                 rays.append(ray)
-        
+    
+    if (count_thetas):
+        return rays, good_vals
     return rays
 #+END_SRC
 
@@ -7778,8 +7786,8 @@ def total_forward_raytrace(x_disp, y_disp, n_linear_theta=100, n_linear_phi=100,
     # only do the 1st and 5th of these paths
     #possible_paths = [possible_paths[1], possible_paths[5]]
     final_rays = run_rays_through_sim(
-        starting_rays, config, np.add(np.array(config['origins']['mirror']), 
-            [0, mirror_position, 0]), paths=possible_paths)
+        starting_rays, config, list(np.add(np.array(config['origins']['mirror']), 
+            [0, mirror_position, 0])), paths=possible_paths)
 
     transformed_rays = transform_rays_to_coupling_optics_frame(final_rays)
     out_forwards = csims.run_rays_forwards_input_rays(
@@ -8411,7 +8419,7 @@ np.sum(total, axis=0).shape
 : (25, 400)
 
 #+BEGIN_SRC jupyter-python :session py :kernel python3
-def plot_interferograms(delay, interferograms):
+def plot_interferograms(delay, interferograms, freq=150):
     for interferogram in interferograms:
         if np.any(interferogram) == False:
             continue
@@ -8424,9 +8432,10 @@ def plot_interferograms(delay, interferograms):
         plt.axvline(150)
         #fft_data /= fft_data[120]
         plt.plot(c * fftfreq[3:], fft_data[3:])
-        plt.xlim(110, 190)
+        #plt.xlim(110, 190)
         #plt.ylim(1e-2, 1.1)
-        #plt.xlim(298, 305)
+        plt.xlim(freq - 10, freq + 10)
+        plt.axvline(freq)
         plt.xlabel('frequency')
         #plt.yscale('log')
         #plt.legend()
@@ -8531,3 +8540,817 @@ len(p[0] - csims.FOCUS[0]) / 8
 
 #+RESULTS:
 : 20.0
+
+** Check the path length difference of these
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plt.hist(out_0[0][8])
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/b23679430365b7d068427dd139861363871b626b.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+from sklearn.cluster import KMeans
+km = KMeans(n_clusters=2)
+km.fit(remove_outliers(out_0[0])[8].reshape(-1, 1))
+1 / (np.diff(km.cluster_centers_[:, 0])[0] / delay[0])
+#+END_SRC
+
+#+RESULTS:
+: -1.0177321783098947
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+pos = 20
+test_out = total_forward_raytrace(0, 0, mirror_position=pos, 
+                                  n_linear_theta=50, n_linear_phi=50)
+#+END_SRC
+
+#+RESULTS:
+: /Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+: 
+: invalid value encountered in sqrt
+: 
+: /Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+: 
+: invalid value encountered in sqrt
+: 
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plt.hist(remove_outliers(test_out)[8])
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/770abe35172ec2dbd75a121259f410deaeb0dfc0.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+km = KMeans(n_clusters=2)
+km.fit(remove_outliers(test_out)[8].reshape(-1, 1))
+1 / (np.diff(km.cluster_centers_[:, 0])[0] / (4 * pos))
+#+END_SRC
+
+#+RESULTS:
+: 1.0177321783098887
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.diff(km.cluster_centers_[:, 0])[0]
+#+END_SRC
+
+#+RESULTS:
+: 79.1326745284573
+
+** Try a partial forwards raytrace?
+
+This transformation function may be messed up.... that's what I would
+guess.. although my out data also looked the same so I have no idea
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+pos = 200
+km = KMeans(n_clusters=2)
+km.fit(remove_outliers(data[0][pos])[8].reshape(-1, 1))
+1 / (np.diff(km.cluster_centers_[:, 0])[0] / (delay[pos]))
+#+END_SRC
+
+#+RESULTS:
+: -1.0183572623664972
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+delay[199]
+#+END_SRC
+
+#+RESULTS:
+: -0.20050125313284184
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+len(remove_outliers(data[0][399])[8])
+#+END_SRC
+
+#+RESULTS:
+: 160
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+len(remove_outliers(out_0[399])[8])
+#+END_SRC
+
+#+RESULTS:
+: 1072
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+len(data[0])
+#+END_SRC
+
+#+RESULTS:
+: 400
+
+Ok there seems to be a discrepancy with the output of 
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+facs = []
+pos = 20
+for x_start in tqdm(np.linspace(-30, 30, 5)):
+    for y_start in np.linspace(-30, 30, 5):
+        test_out = total_forward_raytrace(x_start, y_start, mirror_position=pos, 
+                                          n_linear_theta=100, n_linear_phi=20)
+
+        km = KMeans(n_clusters=2)
+        km.fit(remove_outliers(test_out)[8].reshape(-1, 1))
+        fac = 1 / (np.diff(km.cluster_centers_[:, 0])[0] / (4 * pos))
+        facs.append(fac)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+  0%|          | 0/5 [00:00<?, ?it/s]/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+ 20%|██        | 1/5 [00:17<01:11, 17.96s/it]/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+ 40%|████      | 2/5 [00:45<01:02, 20.83s/it]/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+ 60%|██████    | 3/5 [01:22<00:51, 25.82s/it]/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+ 80%|████████  | 4/5 [01:52<00:26, 26.99s/it]/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+100%|██████████| 5/5 [02:17<00:00, 27.43s/it]
+#+end_example
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+import inspect
+lines = inspect.getsource(transform_rays_to_coupling_optics_frame)
+print(lines)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+def transform_rays_to_coupling_optics_frame(rays):
+    # we want the rays essentially directly after they hit the last polarizer
+    # in the FTS and then we need to calculate the distance between this
+    # polarizer and the first lens of the coupling optics
+    
+    # first we need to transform the rays' points and normal vectors to the
+    # frame of the coupling optics
+    
+    # Here we really need to make sure we're properly rotating this ray really
+    # the ray should stop at the plane which makes the same beam angle as the
+    # coupling optics actually things should be fine I think, but just in case
+    # do it this way I guess
+    # don't stop at (0, 0, 0), stop at (0, -.426, 0) equivilently
+    coupling_optics_origin = COUPLING_OPTICS_ORIGIN
+    angle = -0.190161
+    factor = csims.mm_to_in
+    new_rays = []
+    for ray in rays:
+        new_ray = [ray[0], ray[1], None, None, ray[4]]
+        # switch the x and z coordinate of these!
+        new_vec = rotate(ray[3], [0, 0, angle])
+        new_ray[2] = factor * np.flip(rotate(np.subtract(ray[2], coupling_optics_origin), 
+                                             [0, 0, angle]) * [1, -1, 1])
+        new_ray[3] = np.flip(csims.normalize(factor * new_vec * [1, -1, 1]))
+        new_rays.append(new_ray)
+
+    return new_rays
+#+end_example
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+plt.hist(np.abs(facs))
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/8d77bf4e5d02f02bbc157daa9e2d44a22f2036ef.png]]
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+total = get_and_combine_interferograms([out_0], np.arange(300, 301, 1))
+plot_interferograms(delay, np.sum(total, axis=0), freq=300)
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+: 100%|██████████| 1/1 [00:00<00:00, 159.01it/s]
+: 100%|██████████| 1/1 [00:00<00:00, 64.76it/s]
+: 100%|██████████| 1/1 [00:00<00:00, 69.80it/s]
+: 100%|██████████| 1/1 [00:00<00:00, 17.67it/s]
+: 100%|██████████| 1/1 [00:00<00:00, 118.26it/s]
+: 100%|██████████| 1/1 [00:00<00:00, 338.30it/s]
+: 100%|██████████| 1/1 [00:00<00:00, 308.56it/s]
+: (1, 25, 400)
+[[file:./.ob-jupyter/0ceda856e6cc31d8df27fc402c82173645683d18.png]]
+[[file:./.ob-jupyter/8eca64c511d57191c308285c3fd4108f85e21132.png]]
+[[file:./.ob-jupyter/e487286038db0fc9c00f5167b5918c896c494918.png]]
+[[file:./.ob-jupyter/eda0e9a479ff455d61ab335e32f49673ee7cfb81.png]]
+[[file:./.ob-jupyter/74767f0b470d5b304ef621aaf8ae7828ebd1459d.png]]
+[[file:./.ob-jupyter/a4c1dadc1b42ec63a2a2e73248056658ab4e3b8d.png]]
+[[file:./.ob-jupyter/67163ed38a8cccbed4ba30a5089b2b3e42ef6caf.png]]
+[[file:./.ob-jupyter/c304c21152bacca833acba59d1b9f0ac38b0f910.png]]
+[[file:./.ob-jupyter/5e381feee804332d99eb026fec452e9bf3eceb89.png]]
+[[file:./.ob-jupyter/1844371d05ef2911c13fef12a44c40bb8cb77141.png]]
+[[file:./.ob-jupyter/efba00604f226a7c224f978287ffccc2fff44511.png]]
+[[file:./.ob-jupyter/0db6408887d512025a1ea0cfe572b84b08014438.png]]
+[[file:./.ob-jupyter/800d98fcc4ed93c81301ba4b6c1f1ba887dcefb8.png]]
+[[file:./.ob-jupyter/2c6e7d405ec4a0c78c3523b379e22f98b08a4dc9.png]]
+:END:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+total = get_and_combine_interferograms([out_0], np.arange(150, 151, 1))
+plot_interferograms(delay, np.sum(total, axis=0), freq=150)
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+: 100%|██████████| 1/1 [00:00<00:00, 392.47it/s]
+: 100%|██████████| 1/1 [00:00<00:00, 424.61it/s]
+: 100%|██████████| 1/1 [00:00<00:00, 104.22it/s]
+: 100%|██████████| 1/1 [00:00<00:00, 21.82it/s]
+: 100%|██████████| 1/1 [00:00<00:00, 119.60it/s]
+: 100%|██████████| 1/1 [00:00<00:00, 534.78it/s]
+: 100%|██████████| 1/1 [00:00<00:00, 342.36it/s]
+: (1, 25, 400)
+[[file:./.ob-jupyter/39d4c1397fd75dda6fe9970f89079c2e021401b9.png]]
+[[file:./.ob-jupyter/facd6f372381a2c1bbeccc65886301a8b9137e6e.png]]
+[[file:./.ob-jupyter/0043cf04b2657f2294e09947e85d358258e22c98.png]]
+[[file:./.ob-jupyter/cd4e5f8274cd8a7723e6c9f28d47ffa28f8d4605.png]]
+[[file:./.ob-jupyter/030af2c2c4df96b74c57fc477cbe6a2f3609e130.png]]
+[[file:./.ob-jupyter/2ea5b2d3244734a0ef7e54be29aac05bafa0b10a.png]]
+[[file:./.ob-jupyter/875bddfbb58a1341b0c2c0fc1beba3637ccca4f0.png]]
+[[file:./.ob-jupyter/f8fa41712aac7fa2454503d41d4b1634ca2f58e8.png]]
+[[file:./.ob-jupyter/718f8955b2ad56b4972094a9b51b9334f75824b0.png]]
+[[file:./.ob-jupyter/b42f44f0edcb813c0d47165f9cad56efecdded69.png]]
+[[file:./.ob-jupyter/c6e34adec84ffa445725b0d07aa283adb9be8fd9.png]]
+[[file:./.ob-jupyter/09611ebb46c1f4cd0eb13aa8b18ea7af6c747534.png]]
+[[file:./.ob-jupyter/e42f64f0f073784a0d59d214858bc30158485f1d.png]]
+[[file:./.ob-jupyter/220589919fb26dc10b919902c0fefe8932dc7712.png]]
+:END:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+test_out = total_forward_raytrace(10, 10, mirror_position=0, 
+                                  n_linear_theta=150, n_linear_phi=20)
+test_out.shape
+#+END_SRC
+
+#+RESULTS:
+: (9, 1144)
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.std(utils.get_rays_at_z(test_out, csims.FOCUS[2] - 2)[8])
+#+END_SRC
+
+#+RESULTS:
+: 0.5908935092883864
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.std(utils.get_rays_at_z(test_out, csims.FOCUS[2] + 2)[8])
+#+END_SRC
+
+#+RESULTS:
+: 0.2102931915974487
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+with open("lab_fts_dims_act_modified.yml", "r") as stream:
+    config = yaml.safe_load(stream)
+
+starting_rays = create_source_rays_uniform_from_start_displacement(
+    config['detector']['center'], config['detector']['normal_vec'], 10, 
+    0, 150, 30, config, theta_bound=np.pi / 2, check_rays=True, timeout=100)
+
+with open("lab_fts_dims_mcmahon_backwards.yml", "r") as stream:
+    config = yaml.safe_load(stream)
+
+#possible_paths = [['OM2', 'A1', 'OM1'] + path[::-1] for path in get_possible_paths()]
+possible_paths = [path[::-1] for path in get_possible_paths()]
+# only do the 1st and 5th of these paths
+#possible_paths = [possible_paths[1], possible_paths[5]]
+final_rays = run_rays_through_sim(
+    starting_rays, config, list(np.add(np.array(config['origins']['mirror']), 
+        [0, 0, 0])), paths=possible_paths)
+
+transformed_rays = transform_rays_to_coupling_optics_frame(final_rays)
+out_forwards = csims.run_rays_forwards_input_rays(
+    transformed_rays, z_ap=csims.FOCUS[2], plot=False, fig=fig, color='red')
+#+END_SRC
+
+#+RESULTS:
+: /Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+: 
+: invalid value encountered in sqrt
+: 
+: /Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+: 
+: invalid value encountered in sqrt
+: 
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.std(utils.get_rays_at_z(out_forwards, csims.FOCUS[2] - 2)[8])
+#+END_SRC
+
+#+RESULTS:
+: 0.4381417771422557
+
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.std([ray[4] for ray in all_distances[0]])
+#+END_SRC
+
+#+RESULTS:
+: 2.061003581182155
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.std([np.sum(dists[:5]) for dists in all_distances[0]])
+#+END_SRC
+
+#+RESULTS:
+: 0.6084246128805245
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+all_distances[0][1], all_distances[0][30]
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+([0,
+  336.18299750262486,
+  237.9631758280883,
+  240.0859427329366,
+  240.08319098275365,
+  236.01196384809828,
+  3.8492918370016014,
+  236.01851109448194,
+  236.30273802832812,
+  236.29983597218552,
+  237.96589588648135,
+  263.8168927255898],
+ [0,
+  339.6221637320842,
+  240.16999082865408,
+  236.65386451519612,
+  236.95842079201384,
+  235.02190518063298,
+  2.3551302510300047,
+  234.70179149910427,
+  238.97125560669042,
+  239.27199691523697,
+  240.47893541202689,
+  261.0562281092942])
+#+end_example
+
+I should make sure that if I start a run at the focus of the first mirror that
+the path lengths are similar. Think this works though.
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+with open("lab_fts_dims_act.yml", "r") as stream:
+    config = yaml.safe_load(stream)
+
+possible_paths = get_possible_paths()
+z_vals = []
+for z in np.linspace(-2, 2, 11):    
+    rays_test = csims.get_final_rays_reversed([0, 0, z], 20, theta_bound=.25)
+    transformed_test = transform_rays_to_fts_frame(rays_test)
+
+    points, vectors, total_distances = step_rays(
+        transformed_test, config, run_ray_through_sim, config, [0, 0, 0], 
+        possible_paths[6], final_dist=0)
+    distances_to_keep = []
+    for distances in total_distances:
+        if distances[-1] != 0:
+            distances_to_keep.append(distances)
+
+    mean = np.mean(list(map(lambda x: np.sum(x[0:]), distances_to_keep)))
+    stdev = np.std(list(map(lambda x: np.sum(x[0:]), distances_to_keep)))
+    z_vals.append([z, mean, stdev])
+
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:288: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:289: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:290: RuntimeWarning:
+
+invalid value encountered in sqrt
+initial number of rays = 304
+total number of rays making past the first ellipse = 304
+total number of rays making it all the way through = 240
+initial number of rays = 304
+total number of rays making past the first ellipse = 304
+total number of rays making it all the way through = 280
+initial number of rays = 332
+total number of rays making past the first ellipse = 320
+total number of rays making it all the way through = 280
+initial number of rays = 340
+total number of rays making past the first ellipse = 320
+total number of rays making it all the way through = 280
+initial number of rays = 356
+total number of rays making past the first ellipse = 356
+total number of rays making it all the way through = 320
+initial number of rays = 380
+total number of rays making past the first ellipse = 360
+total number of rays making it all the way through = 320
+initial number of rays = 400
+total number of rays making past the first ellipse = 400
+total number of rays making it all the way through = 330
+initial number of rays = 400
+total number of rays making past the first ellipse = 400
+total number of rays making it all the way through = 360
+initial number of rays = 400
+total number of rays making past the first ellipse = 400
+total number of rays making it all the way through = 366
+initial number of rays = 400
+total number of rays making past the first ellipse = 400
+total number of rays making it all the way through = 400
+initial number of rays = 400
+total number of rays making past the first ellipse = 400
+total number of rays making it all the way through = 400
+#+end_example
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+z_vals = np.array(z_vals)
+plt.plot(z_vals[:, 0], z_vals[:, 2], '.')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/56c3a00f8febebf66967b1956e357dddadfc1847.png]]
+
+Might have to 'shift' the focus to move down a couple inches in light of the
+source being further away from the FTS to begin with. I bet with a closer
+source this would go away.
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+with open("lab_fts_dims_act_modified.yml", "r") as stream:
+    config = yaml.safe_load(stream)
+
+possible_paths = get_possible_paths()
+z_vals = []
+for z in np.linspace(-3, 3, 15):    
+    rays_test = csims.get_final_rays_reversed([0, 0, z], 20, theta_bound=.25)
+    transformed_test = transform_rays_to_fts_frame(rays_test)
+
+    points, vectors, total_distances = step_rays(
+        transformed_test, config, run_ray_through_sim, config, [0, 0, 0], 
+        possible_paths[6], final_dist=0)
+    distances_to_keep = []
+    for distances in total_distances:
+        if distances[-1] != 0:
+            distances_to_keep.append(distances)
+
+    mean = np.mean(list(map(lambda x: np.sum(x[0:]), distances_to_keep)))
+    stdev = np.std(list(map(lambda x: np.sum(x[0:]), distances_to_keep)))
+    z_vals.append([z, mean, stdev])
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:252: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:255: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:288: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:289: RuntimeWarning:
+
+invalid value encountered in sqrt
+
+/Users/tommyalford/FTS_simulation_results/fts_coupling_optics_geo.py:290: RuntimeWarning:
+
+invalid value encountered in sqrt
+initial number of rays = 272
+total number of rays making past the first ellipse = 272
+total number of rays making it all the way through = 240
+initial number of rays = 292
+total number of rays making past the first ellipse = 280
+total number of rays making it all the way through = 240
+initial number of rays = 296
+total number of rays making past the first ellipse = 280
+total number of rays making it all the way through = 240
+initial number of rays = 304
+total number of rays making past the first ellipse = 304
+total number of rays making it all the way through = 240
+initial number of rays = 332
+total number of rays making past the first ellipse = 320
+total number of rays making it all the way through = 280
+initial number of rays = 340
+total number of rays making past the first ellipse = 320
+total number of rays making it all the way through = 280
+initial number of rays = 352
+total number of rays making past the first ellipse = 352
+total number of rays making it all the way through = 308
+initial number of rays = 380
+total number of rays making past the first ellipse = 360
+total number of rays making it all the way through = 320
+initial number of rays = 400
+total number of rays making past the first ellipse = 400
+total number of rays making it all the way through = 332
+initial number of rays = 400
+total number of rays making past the first ellipse = 400
+total number of rays making it all the way through = 360
+initial number of rays = 400
+total number of rays making past the first ellipse = 400
+total number of rays making it all the way through = 374
+initial number of rays = 400
+total number of rays making past the first ellipse = 400
+total number of rays making it all the way through = 400
+initial number of rays = 400
+total number of rays making past the first ellipse = 400
+total number of rays making it all the way through = 400
+initial number of rays = 400
+total number of rays making past the first ellipse = 400
+total number of rays making it all the way through = 400
+initial number of rays = 400
+total number of rays making past the first ellipse = 400
+total number of rays making it all the way through = 320
+#+end_example
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+z_vals = np.array(z_vals)
+plt.plot(z_vals[:, 0], z_vals[:, 2], '.')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/d640b553ada84f7d2db79df1bf961fc647fa60b2.png]]
+
+This makes sense now. So I guess I should move around the focus around more,
+maybe go from (-1, 3) or something like that!
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+with open("lab_fts_dims_act.yml", "r") as stream:
+    config = yaml.safe_load(stream)
+    
+starting_rays, good_vals = create_source_rays_uniform_from_start_displacement(
+    config['detector']['center'], config['detector']['normal_vec'], 
+    0, 0, 300, 15, config, theta_bound=np.pi / 2, check_rays=True, timeout=100, 
+    count_thetas=True)
+
+with open("lab_fts_dims_mcmahon_backwards.yml", "r") as stream:
+    config = yaml.safe_load(stream)
+
+#possible_paths = [['OM2', 'A1', 'OM1'] + path[::-1] for path in get_possible_paths()]
+possible_paths = [path[::-1] for path in get_possible_paths()]
+# only do the 1st and 5th of these paths
+possible_paths = [possible_paths[1]]
+final_rays = run_rays_through_sim(
+    starting_rays, config, np.array(config['origins']['mirror']), 
+    paths=possible_paths)
+
+transformed_rays = transform_rays_to_coupling_optics_frame(final_rays)
+
+# fig = go.Figure()
+
+# #plot the initial ray steps
+# all_points = []
+# all_vectors = []
+# all_distances = []
+# for path in possible_paths:
+#     total_ray_points, total_vectors, total_distances = step_rays(
+#         starting_rays, config, run_ray_through_sim, config, [0, 0, 0], 
+#         path, final_dist=238, debug=False)
+
+#     all_points.append(total_ray_points)
+#     all_vectors.append(total_vectors)
+#     all_distances.append(total_distances)
+
+#plot_all_items(config, all_points, all_vectors, all_distances, [0, 0, 0], fig=fig)
+
+out_forwards = csims.run_rays_forwards_input_rays(transformed_rays, z_ap=csims.FOCUS[2], plot=False,
+                                                  fig=fig, color='red')
+# fig.show()
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+out_forwards.shape
+#+END_SRC
+
+#+RESULTS:
+: (9, 210)
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+len(np.unique(np.array(good_vals)[:, 0]))
+#+END_SRC
+
+#+RESULTS:
+: 12
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+len(np.unique(np.array(good_vals)[:, 1]))
+#+END_SRC
+
+#+RESULTS:
+: 25
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+out_forwards.shape
+#+END_SRC
+
+#+RESULTS:
+: (9, 467)
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+np.unique(np.round(out_forwards[8], 3))
+#+END_SRC
+
+#+RESULTS:
+: array([3450.912, 3450.913, 3450.915, 3450.918, 3450.922, 3450.93 ,
+:        3450.941, 3450.957, 3450.979, 3451.008, 3451.009, 3451.047,
+:        3451.048, 3451.098, 3451.162, 3451.243, 3451.343, 3451.344,
+:        3451.467, 3451.468, 3451.619, 3451.62 ])
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+t = []
+with open('test.p', 'rb') as pf:
+    try:
+        while True:
+            a = pickle.load(pf)
+            t.append(a)
+            #print(a)
+    except EOFError:
+        pass
+    
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC jupyter-python :session py :kernel python3
+len(t)
+#+END_SRC
+
+#+RESULTS:
+: 10
+
+This behavior is symmetry in x but not in y...
