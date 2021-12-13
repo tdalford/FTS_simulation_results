@@ -299,7 +299,7 @@ def get_interferogram_frequency(outrays, frequencies, debug=True):
     return total_power
 
 
-def get_interferograms(out_data, freqs):
+def get_interferograms(out_data, freqs, add_diffraction_effects=True):
     total_out_segments, det_points = segment_rays(out_data)
     reorganized_segments = []
     for j in range(len(det_points)):
@@ -309,6 +309,11 @@ def get_interferograms(out_data, freqs):
             data = total_out_segments[i][j]
             # if data is empty, do nothing
             reorganized_segments[j].append(data)
+
+    if (add_diffraction_effects):
+        assert len(freqs == 1)
+        reorganized_segments = add_diffraction_path_lengths(
+            reorganized_segments, freqs[0])
 
     interferograms = []
     for j, det_center in enumerate(det_points):
@@ -457,6 +462,34 @@ def get_interferogram_rays_at_z(ray_data, z):
         ray_data[i]))] for i in range(len(ray_data))]
 
 
+def get_added_distance(dist_from_center, frequency, aperture_size=DET_SIZE):
+    # added distance calculated to be (w^2 * 1.22 * lambda / d^2)
+    wavelength = (c / frequency)  # in mm
+    # we don't go above 300 Ghz usually.. can change if we do
+    assert wavelength >= 1
+    return ((dist_from_center ** 2) * 1.22 * wavelength) / (aperture_size ** 2)
+
+
+def add_diffraction_path_lengths(reorganized_segments, frequency,
+                                 n_linear_det=5):
+    centers = get_centers(n_linear_det=n_linear_det)
+    assert len(reorganized_segments) == len(centers)
+    diffraction_added_segments = []
+    for center, segment in zip(centers, reorganized_segments):
+        center = np.add(center, np.array(csims.FOCUS[:2]) * IN_TO_MM)
+        diffraction_segment_rays = []
+        for mirror_path_rays in segment:
+            diffraction_rays = np.copy(mirror_path_rays)
+            dist_from_aperture_center = np.sqrt(np.sum(np.square((
+                diffraction_rays[[0, 1]] * IN_TO_MM).T - center), axis=1))
+            assert np.all(dist_from_aperture_center <= (DET_SIZE / 2))
+            diffraction_rays[8] += get_added_distance(
+                dist_from_aperture_center, frequency)
+            diffraction_segment_rays.append(diffraction_rays)
+        diffraction_added_segments.append(diffraction_segment_rays)
+    return diffraction_added_segments
+
+
 def postprocess_interferograms_discrete(ray_data, frequencies,
                                         z_shift=0):
 
@@ -468,13 +501,13 @@ def postprocess_interferograms_discrete(ray_data, frequencies,
 
     if z_shift != 0:
         print('Propagating rays z shift of %s inches.' % z_shift)
-        ray_data = get_interferogram_rays_at_z(
+        ray_z_data = get_interferogram_rays_at_z(
             ray_data, csims.FOCUS[2] + z_shift)
 
     for freq in frequencies:
         semaphore.acquire()
         process = Process(target=process_interferogram_discrete, args=(
-            ray_data, freq, total_interferograms, semaphore))
+            ray_z_data, freq, total_interferograms, semaphore))
 
         process.start()
         processes.append(process)
