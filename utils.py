@@ -329,10 +329,12 @@ def get_interferograms(out_data, freqs, add_diffraction_effects=True):
     return interferograms
 
 
-def get_and_combine_interferograms(all_data, freqs, debug=True):
+def get_and_combine_interferograms(all_data, freqs, debug=True,
+                                   add_diffraction_effects=True):
     total_interferograms = []
     for data in tqdm(all_data, disable=(not debug)):
-        interferograms = get_interferograms(data, freqs)
+        interferograms = get_interferograms(
+            data, freqs, add_diffraction_effects=add_diffraction_effects)
         total_interferograms.append(interferograms)
     total_interferograms = np.array(total_interferograms)
     return total_interferograms
