@@ -453,7 +453,7 @@ def process_interferogram_discrete(
         outrays, frequency, total_interferograms, semaphore):
     interferogram_sum_frequency = np.sum(get_and_combine_interferograms(
         outrays, np.arange(frequency, frequency + 1, 1),
-        debug=False), axis=0)
+        debug=False, add_diffraction_effects=True), axis=0)
     total_interferograms.put([frequency, interferogram_sum_frequency])
     semaphore.release()
 
@@ -500,6 +500,7 @@ def postprocess_interferograms_discrete(ray_data, frequencies,
     semaphore = Semaphore(max_processes)
     manager = Manager()
     total_interferograms = manager.Queue()
+    ray_z_data = ray_data
 
     if z_shift != 0:
         print('Propagating rays z shift of %s inches.' % z_shift)
@@ -564,7 +565,7 @@ def postprocess_discrete_z_positions():
     # In actuality it took 3ish hours
     freqs = np.arange(20, 300, 5)
     fname = "/data/talford/FTS_sim_results/all_discrete_interferograms_z" + (
-        "_shift_0_35_25_25.p")
+        "_shift_0_35_25_25_diffraction.p")
     z_coordinates = (1 / IN_TO_MM) * np.linspace(-50, 75, 31)
 
     for z in z_coordinates:
