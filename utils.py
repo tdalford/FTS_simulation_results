@@ -550,7 +550,7 @@ def postprocess_discrete():
 def postprocess_discrete_z_positions():
 
     data = []
-    fname = "/data/talford/FTS_sim_results/total_outrays_0_35_25_25.p"
+    fname = "/data/talford/FTS_sim_results/total_outrays_LF_0_35_25_25.p"
 
     with open(fname, 'rb') as f:
         try:
@@ -565,7 +565,7 @@ def postprocess_discrete_z_positions():
     # In actuality it took 3ish hours
     freqs = np.arange(20, 300, 5)
     fname = "/data/talford/FTS_sim_results/all_discrete_interferograms_z" + (
-        "_shift_0_35_25_25_diffraction.p")
+        "LF_0_35_25_25_diffraction.p")
     z_coordinates = (1 / IN_TO_MM) * np.linspace(-50, 75, 31)
 
     for z in z_coordinates:
@@ -580,8 +580,8 @@ def postprocess_discrete_z_positions():
 
 
 def main():
-    FTS_stage_throw = 20.     # total throw extent in mm
-    FTS_stage_step_size = 0.1  # FTS step size in mm
+    FTS_stage_throw = 35.     # total throw extent in mm
+    FTS_stage_step_size = .375  # FTS step size in mm
     n_mirror_positions = (2 * FTS_stage_throw / FTS_stage_step_size)
 
     x_vals = np.linspace(-35, 35, 25)
@@ -591,13 +591,13 @@ def main():
         x_vals, y_vals, n_mirror_positions, FTS_stage_throw,
         n_linear_theta=300, n_linear_phi=15, debug=False)
 
-    fname = "/data/talford/FTS_sim_results/total_outrays_0_35_25_25.p"
+    fname = "/data/talford/FTS_sim_results/total_outrays_LF_0_35_25_25.p"
     for outrays in total_outrays:
         with open(fname, 'ab') as output:
             pickle.dump(outrays, output, pickle.HIGHEST_PROTOCOL)
 
     pickle.dump(displacements, open(
-        "/data/talford/FTS_sim_results/displacements_0_35_25_25.p", "wb"))
+        "/data/talford/FTS_sim_results/displacements_LF_0_35_25_25.p", "wb"))
 
     # save this for loading elsewhere
     print('finished!')
